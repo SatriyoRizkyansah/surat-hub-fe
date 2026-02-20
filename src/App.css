@@ -1,0 +1,207 @@
+.app-shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 3rem;
+  color: #101828;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.app-header h1 {
+  margin: 0.2rem 0 0.4rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: #475467;
+  margin: 0;
+}
+
+.lede {
+  margin: 0;
+  color: #475467;
+  max-width: 720px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.header-actions .ghost {
+  border: 1px solid #e4e7ec;
+  background: #fff;
+  color: #0f172a;
+  padding: 0.55rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-actions .ghost:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: 1rem;
+  padding: 1rem 1rem 0.75rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.panel-title {
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+
+.template-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.template-button {
+  border: 1px solid #e4e7ec;
+  background: #f8fafc;
+  padding: 0.55rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #0f172a;
+}
+
+.template-button:hover {
+  border-color: #cbd5e1;
+  background: #eef2ff;
+}
+
+.template-button.is-active {
+  border-color: #7c3aed;
+  background: #f1e9ff;
+  color: #5b21b6;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.18);
+}
+
+.editor-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1rem;
+}
+
+.paper {
+  background: linear-gradient(135deg, #fff, #f9fafb);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #e4e7ec;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+}
+
+.editor-host {
+  min-height: 1040px;
+}
+
+.editor-host.is-loading {
+  opacity: 0.4;
+}
+
+.editor-loading,
+.editor-error {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: #475467;
+}
+
+.editor-error {
+  color: #b42318;
+  font-weight: 600;
+}
+
+.paper .ck.ck-editor__editable:not(.ck-editor__nested-editable) {
+  min-height: 960px;
+  padding: 12mm 16mm;
+  max-width: 210mm;
+  margin: 0 auto;
+  box-shadow: 0 0 0 1px #e2e8f0;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.paper .ck.ck-editor {
+  width: 100%;
+}
+
+.paper .ck.ck-toolbar {
+  border-radius: 10px 10px 0 0;
+}
+
+.paper .ck.ck-editor__main > .ck-editor__editable {
+  border-radius: 0 0 12px 12px;
+}
+
+.side-notes {
+  background: #fff;
+  border: 1px solid #e4e7ec;
+  border-radius: 1rem;
+  padding: 1rem;
+  color: #475467;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.note-title {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.side-notes ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+@media (max-width: 1100px) {
+  .app-shell {
+    padding: 2rem 1.25rem;
+  }
+
+  .editor-wrapper {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .panel,
+  .paper,
+  .side-notes {
+    padding: 1rem;
+  }
+}

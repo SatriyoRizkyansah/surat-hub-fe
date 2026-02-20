@@ -1,0 +1,174 @@
+.ck-content .surat-tugas {
+  font-family: "Times New Roman", serif;
+  font-size: 12pt;
+  line-height: 1.4;
+  width: 100%;
+  margin: 0;
+}
+
+.ck-content .surat-tugas .st-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 4px 6px;
+}
+
+.ck-content .surat-tugas .st-logo-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ck-content .surat-tugas .st-logo {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+}
+
+.ck-content .surat-tugas .st-title {
+  flex: 1;
+  text-align: center;
+}
+
+.ck-content .surat-tugas .st-title h2,
+.ck-content .surat-tugas .st-title h3,
+.ck-content .surat-tugas .st-title p {
+  margin: 2px 0;
+}
+
+.ck-content .surat-tugas .st-title h2 {
+  font-size: 16pt;
+  font-weight: bold;
+}
+
+.ck-content .surat-tugas .st-title h3 {
+  font-size: 14pt;
+  font-weight: bold;
+}
+
+.ck-content .surat-tugas .st-title p {
+  font-size: 10pt;
+}
+
+.ck-content .surat-tugas .st-sasmitajaya {
+  font-size: 10pt;
+  margin: 0;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.ck-content .surat-tugas .st-lembaga {
+  font-size: 10pt;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.ck-content .surat-tugas .st-line-top,
+.ck-content .surat-tugas .st-line-bottom {
+  border-top: 2px solid #1f2937;
+  margin: 6px 0;
+}
+
+.ck-content .surat-tugas .st-line-bottom {
+  margin-bottom: 0;
+}
+
+.ck-content .surat-tugas .st-subhead {
+  text-align: center;
+  margin: 4px 0 10px;
+}
+
+.ck-content .surat-tugas .st-subhead .st-small {
+  font-size: 9pt;
+}
+
+.ck-content .surat-tugas .st-divider {
+  border: 1px solid #000;
+  margin: 6px 0 14px;
+}
+
+.ck-content .surat-tugas .st-heading {
+  text-align: center;
+  font-weight: bold;
+  text-decoration: underline;
+  margin: 0 0 4px;
+}
+
+.ck-content .surat-tugas .st-sub {
+  text-align: center;
+  margin: -4px 0 12px;
+}
+
+.ck-content .surat-tugas .st-body p {
+  margin: 6px 0;
+}
+
+.ck-content .surat-tugas .st-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+
+.ck-content .surat-tugas .st-body td {
+  padding: 2px 4px;
+  vertical-align: top;
+}
+
+.ck-content .surat-tugas .st-body .st-label {
+  width: 140px;
+}
+
+.ck-content .surat-tugas .st-body table td {
+  border: 1px solid #d9d9d9;
+}
+
+.ck-content .surat-tugas .st-sign {
+  width: 100%;
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ck-content .surat-tugas .st-sign-inner {
+  text-align: left;
+  min-width: 260px;
+}
+
+.ck-content .surat-tugas .st-sign-space {
+  margin-top: 48px;
+}
+
+.ck-content .surat-tugas .st-sign-name,
+.ck-content .surat-tugas .st-sign-nip {
+  margin-top: -6px;
+}
+
+.ck-content .surat-tugas .st-footer {
+  margin-top: 28px;
+  font-size: 9pt;
+}
+
+.ck-content .surat-tugas .st-footer-inner {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  gap: 12px;
+  align-items: start;
+  border: 1px solid #d1d5db;
+  padding: 8px;
+}
+
+.ck-content .surat-tugas .st-footer-text p {
+  margin: 2px 0;
+}
+
+.ck-content .surat-tugas .st-footer-qr {
+  width: 90px;
+  height: 90px;
+  border: 1px dashed #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #475467;
+}
