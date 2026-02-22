@@ -1,174 +1,155 @@
-.ck-content .surat-tugas {
-  font-family: "Times New Roman", serif;
-  font-size: 12pt;
-  line-height: 1.4;
-  width: 100%;
-  margin: 0;
+:root {
+  --word-navy: #001f5f;
+  --word-gold: #ffc000;
+  --word-red: #c00000;
+  --word-text: #1f2a37;
+  --word-muted: #4b5563;
 }
 
-.ck-content .surat-tugas .st-header {
+:where(.ck-content, .export-paper) .surat-word {
+  font-family: "Times New Roman", serif;
+  font-size: 12pt;
+  line-height: 1.5;
+  color: var(--word-text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  gap: 12px;
+}
+
+:where(.ck-content, .export-paper) .word-header {
+  text-align: center;
+  color: var(--word-navy);
+}
+
+:where(.ck-content, .export-paper) .word-ribbon {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+:where(.ck-content, .export-paper) .word-ribbon__bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+}
+
+.word-ribbon__bar--red {
+  background: var(--word-red);
+}
+
+.word-ribbon__bar--gold {
+  background: var(--word-gold);
+}
+
+.word-ribbon__bar--navy {
+  background: var(--word-navy);
+}
+
+:where(.ck-content, .export-paper) .word-branding {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin: 0 4px 6px;
+  gap: 18px;
 }
 
-.ck-content .surat-tugas .st-logo-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ck-content .surat-tugas .st-logo {
-  width: 120px;
-  height: 120px;
+:where(.ck-content, .export-paper) .word-logo {
+  width: 110px;
+  height: 110px;
   object-fit: contain;
 }
 
-.ck-content .surat-tugas .st-title {
-  flex: 1;
-  text-align: center;
-}
-
-.ck-content .surat-tugas .st-title h2,
-.ck-content .surat-tugas .st-title h3,
-.ck-content .surat-tugas .st-title p {
-  margin: 2px 0;
-}
-
-.ck-content .surat-tugas .st-title h2 {
-  font-size: 16pt;
-  font-weight: bold;
-}
-
-.ck-content .surat-tugas .st-title h3 {
-  font-size: 14pt;
-  font-weight: bold;
-}
-
-.ck-content .surat-tugas .st-title p {
-  font-size: 10pt;
-}
-
-.ck-content .surat-tugas .st-sasmitajaya {
-  font-size: 10pt;
-  margin: 0;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.ck-content .surat-tugas .st-lembaga {
-  font-size: 10pt;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.ck-content .surat-tugas .st-line-top,
-.ck-content .surat-tugas .st-line-bottom {
-  border-top: 2px solid #1f2937;
-  margin: 6px 0;
-}
-
-.ck-content .surat-tugas .st-line-bottom {
-  margin-bottom: 0;
-}
-
-.ck-content .surat-tugas .st-subhead {
-  text-align: center;
-  margin: 4px 0 10px;
-}
-
-.ck-content .surat-tugas .st-subhead .st-small {
-  font-size: 9pt;
-}
-
-.ck-content .surat-tugas .st-divider {
-  border: 1px solid #000;
-  margin: 6px 0 14px;
-}
-
-.ck-content .surat-tugas .st-heading {
-  text-align: center;
-  font-weight: bold;
-  text-decoration: underline;
-  margin: 0 0 4px;
-}
-
-.ck-content .surat-tugas .st-sub {
-  text-align: center;
-  margin: -4px 0 12px;
-}
-
-.ck-content .surat-tugas .st-body p {
-  margin: 6px 0;
-}
-
-.ck-content .surat-tugas .st-body table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 4px;
-}
-
-.ck-content .surat-tugas .st-body td {
-  padding: 2px 4px;
-  vertical-align: top;
-}
-
-.ck-content .surat-tugas .st-body .st-label {
+:where(.ck-content, .export-paper) .word-logo--right {
   width: 140px;
 }
 
-.ck-content .surat-tugas .st-body table td {
-  border: 1px solid #d9d9d9;
+:where(.ck-content, .export-paper) .word-identity {
+  flex: 1;
 }
 
-.ck-content .surat-tugas .st-sign {
-  width: 100%;
-  margin-top: 18px;
-  display: flex;
-  justify-content: flex-end;
+:where(.ck-content, .export-paper) .word-identity h1 {
+  margin: 0;
+  font-size: 22pt;
+  letter-spacing: 1px;
 }
 
-.ck-content .surat-tugas .st-sign-inner {
-  text-align: left;
-  min-width: 260px;
-}
-
-.ck-content .surat-tugas .st-sign-space {
-  margin-top: 48px;
-}
-
-.ck-content .surat-tugas .st-sign-name,
-.ck-content .surat-tugas .st-sign-nip {
-  margin-top: -6px;
-}
-
-.ck-content .surat-tugas .st-footer {
-  margin-top: 28px;
-  font-size: 9pt;
-}
-
-.ck-content .surat-tugas .st-footer-inner {
-  display: grid;
-  grid-template-columns: 1fr 90px;
-  gap: 12px;
-  align-items: start;
-  border: 1px solid #d1d5db;
-  padding: 8px;
-}
-
-.ck-content .surat-tugas .st-footer-text p {
+:where(.ck-content, .export-paper) .word-foundation,
+:where(.ck-content, .export-paper) .word-unit,
+:where(.ck-content, .export-paper) .word-motto {
   margin: 2px 0;
+  font-weight: bold;
+  letter-spacing: 0.5px;
 }
 
-.ck-content .surat-tugas .st-footer-qr {
-  width: 90px;
-  height: 90px;
-  border: 1px dashed #94a3b8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: #475467;
+:where(.ck-content, .export-paper) .word-unit {
+  font-size: 14pt;
+}
+
+:where(.ck-content, .export-paper) .word-motto {
+  font-style: italic;
+}
+
+:where(.ck-content, .export-paper) .word-divider {
+  margin-top: 10px;
+}
+
+:where(.ck-content, .export-paper) .word-divider span {
+  display: block;
+  border-top: 2px solid var(--word-navy);
+  margin: 4px auto;
+  width: 90%;
+}
+
+:where(.ck-content, .export-paper) .word-meta {
+  margin-top: 8px;
+}
+
+:where(.ck-content, .export-paper) .word-meta span {
+  font-weight: bold;
+  min-width: 110px;
+  display: inline-block;
+}
+
+:where(.ck-content, .export-paper) .word-address p {
+  margin: 0;
+}
+
+:where(.ck-content, .export-paper) .word-detail {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+:where(.ck-content, .export-paper) .word-detail td {
+  padding: 6px 8px;
+  border: 1px solid #d6dae2;
+  vertical-align: top;
+}
+
+:where(.ck-content, .export-paper) .surat-word ul {
+  margin: 0 0 0 18px;
+  padding: 0;
+}
+
+:where(.ck-content, .export-paper) .word-signature {
+  align-self: flex-end;
+  text-align: left;
+  margin-top: 24px;
+}
+
+:where(.ck-content, .export-paper) .word-signature__space {
+  height: 70px;
+}
+
+:where(.ck-content, .export-paper) .word-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 2px solid var(--word-navy);
+  font-size: 10pt;
+  color: var(--word-muted);
+}
+
+:where(.ck-content, .export-paper) .word-footer__addresses p,
+:where(.ck-content, .export-paper) .word-footer__contacts p {
+  margin: 2px 0;
 }

@@ -2,91 +2,76 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // @ts-nocheck
 import { useEffect, useMemo, useRef, useState } from "react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import html2pdf from "html2pdf.js";
+import {
+  Alignment,
+  BlockQuote,
+  Bold,
+  ClassicEditor,
+  Essentials,
+  FontFamily,
+  FontSize,
+  GeneralHtmlSupport,
+  Heading,
+  HorizontalLine,
+  Indent,
+  IndentBlock,
+  Italic,
+  Link,
+  List,
+  ListProperties,
+  Paragraph,
+  PasteFromOffice,
+  RemoveFormat,
+  SelectAll,
+  Table,
+  TableCellProperties,
+  TableProperties,
+  TableToolbar,
+  Underline,
+} from "ckeditor5";
 import "ckeditor5/ckeditor5.css";
 import "./App.css";
 import "./templates/suratTugas.css";
+import { suratTugasBody, suratTugasFooter, suratTugasHeader } from "./templates/suratTugasTemplate";
 
 type Template = {
   id: string;
   name: string;
   content: string;
 };
+const editorPlugins = [
+  Essentials,
+  Paragraph,
+  Heading,
+  Bold,
+  Italic,
+  Underline,
+  RemoveFormat,
+  Alignment,
+  FontFamily,
+  FontSize,
+  List,
+  ListProperties,
+  Indent,
+  IndentBlock,
+  BlockQuote,
+  Link,
+  Table,
+  TableToolbar,
+  TableProperties,
+  TableCellProperties,
+  HorizontalLine,
+  GeneralHtmlSupport,
+  PasteFromOffice,
+  SelectAll,
+];
 
 const templates: Template[] = [
   {
     id: "surat-tugas",
-    name: "Surat Tugas (A4)",
-    content: `
-      <div class="surat-tugas">
-        <div class="st-header">
-          <div class="st-logo-box">
-            <img class="st-logo" src="/assets/logo/logo-kiri.svg" alt="Logo kiri" />
-          </div>
-          <div class="st-title">
-            <p class="st-line-top"></p>
-            <p class="st-sasmitajaya">YAYASAN SASMITA JAYA</p>
-            <h2>UNIVERSITAS PAMULANG</h2>
-            <p class="st-lembaga">LEMBAGA PENELITIAN DAN PENGABDIAN KEPADA MASYARAKAT</p>
-            <p class="st-line-bottom"></p>
-          </div>
-          <div class="st-logo-box">
-            <img class="st-logo" src="/assets/logo/logo-kanan.svg" alt="Logo kanan" />
-          </div>
-        </div>
-
-        <div class="st-subhead">
-          <span class="st-small">Kampus: Jl. Surya Kencana No.1, Pamulang, Tangerang Selatan</span>
-        </div>
-
-        <div class="st-divider"></div>
-
-        <p class="st-heading">SURAT TUGAS</p>
-        <p class="st-sub">Nomor : {{nomor_surat}}</p>
-
-        <div class="st-body">
-          <p>Dekan Fakultas Ekonomi dan Bisnis Universitas Pamulang menugaskan kepada:</p>
-          <table>
-            <tr><td class="st-label">Nama</td><td>: {{nama_dosen}}</td></tr>
-            <tr><td class="st-label">NIDN/NIDK</td><td>: {{nidn}}</td></tr>
-            <tr><td class="st-label">Jabatan</td><td>: {{jabatan}}</td></tr>
-          </table>
-
-          <p>Untuk melaksanakan tugas sebagai Pembimbing Penulisan Tugas Akhir (TA), Skripsi, Tesis kepada:</p>
-          <table>
-            <tr><td class="st-label">Nama</td><td>: {{nama_mahasiswa}}</td></tr>
-            <tr><td class="st-label">NIM</td><td>: {{nim}}</td></tr>
-            <tr><td class="st-label">Fakultas/Prodi</td><td>: {{prodi}}</td></tr>
-            <tr><td class="st-label">Judul Tugas Akhir</td><td>: {{judul_ta}}</td></tr>
-          </table>
-
-          <p>Surat tugas ini dibuat untuk dilaksanakan dengan penuh tanggung jawab dan membuat laporan.</p>
-
-          <div class="st-sign">
-            <div class="st-sign-inner">
-              <p>Pamulang, {{tanggal}}</p>
-              <p>a.n. Dekan,</p>
-              <p class="st-sign-space">__________________________</p>
-              <p class="st-sign-name">{{penandatangan}}</p>
-              <p class="st-sign-nip">{{nip_penandatangan}}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="st-footer">
-          <div class="st-footer-inner">
-            <div class="st-footer-text">
-              <p><strong>Kampus 1.</strong> Jl. Surya Kencana No.1, Pamulang, Kota Tangerang Selatan, Banten 15417</p>
-              <p><strong>Kampus 2.</strong> Jl. Raya Puspitek No.11, Serpong, Kota Tangerang Selatan, Banten 15316</p>
-              <p><strong>Kampus 3.</strong> Jl. Witana Harja No 18, Pamulang, Kota Tangerang Selatan, Banten 15417</p>
-              <p><strong>Kampus 4.</strong> Jl. Raya Jakarta Km 8 No.6, Kelapa Dua, Kab. Tangerang, Banten 15810</p>
-              <p>Email: humas@unpam.ac.id &nbsp;|&nbsp; Helpdesk: helpdesk.unpam.ac.id &nbsp;|&nbsp; www.unpam.ac.id</p>
-            </div>
-            <div class="st-footer-qr">QR</div>
-          </div>
-        </div>
-      </div>
-    `,
+    name: "Undangan Sosialisasi LSP",
+    content: suratTugasBody,
   },
   {
     id: "undangan-rapat",
@@ -152,8 +137,183 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const editorElementRef = useRef<HTMLDivElement | null>(null);
   const editorInstanceRef = useRef<any>(null);
+  const paperRef = useRef<HTMLDivElement | null>(null);
+  const exportRef = useRef<HTMLDivElement | null>(null);
 
-  const toolbar = useMemo(() => ["heading", "|", "bold", "italic", "link", "|", "bulletedList", "numberedList", "|", "blockQuote", "insertTable", "|", "undo", "redo"], []);
+  const buildSuratTugasExportHtml = (body: string) => {
+    const hasWrapper = body.includes('class="surat-tugas"');
+    if (hasWrapper) {
+      return body.replace('<div class="surat-tugas">', `<div class="surat-tugas">${suratTugasHeader}`).replace(/<\/div>\s*$/, `${suratTugasFooter}</div>`);
+    }
+
+    return `<div class="surat-tugas">${suratTugasHeader}${body}${suratTugasFooter}</div>`;
+  };
+
+  const handleExportDocx = async () => {
+    const payload = {
+      content,
+      header: {
+        html: `
+          <div style="font-family:'Times New Roman', serif; color:#001f5f; text-align:center;">
+            <div style="display:flex; gap:6px; margin-bottom:8px;">
+              <span style="flex:1; height:6px; background:#c00000; border-radius:999px; display:block;"></span>
+              <span style="flex:1; height:6px; background:#ffc000; border-radius:999px; display:block;"></span>
+              <span style="flex:1; height:6px; background:#001f5f; border-radius:999px; display:block;"></span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+              <img src="/assets/logo/logo-kiri.svg" style="width:110px; height:110px; object-fit:contain;" />
+              <div style="flex:1;">
+                <div style="font-weight:700; letter-spacing:0.5px;">YAYASAN SASMITA JAYA</div>
+                <div style="font-weight:700; font-size:22px; letter-spacing:1px;">UNIVERSITAS PAMULANG</div>
+                <div style="font-weight:700; font-size:14px; margin-top:4px;">LEMBAGA SERTIFIKASI PROFESI</div>
+                <div style="font-style:italic; font-weight:700; margin-top:2px;">“LEMBAGA SERTIFIKASI PROFESI”</div>
+              </div>
+              <img src="/assets/logo/logo-kanan.svg" style="width:130px; height:130px; object-fit:contain;" />
+            </div>
+            <div style="margin-top:8px;">
+              <div style="border-top:2px solid #001f5f; margin:2px auto; width:90%;"></div>
+              <div style="border-top:4px solid #001f5f; margin:2px auto; width:90%;"></div>
+            </div>
+          </div>
+        `,
+        height: 120,
+      },
+      footer: {
+        html: `
+          <div style="font-family:'Times New Roman', serif; font-size:9pt; color:#1f385f; border-top:2px solid #001f5f; padding-top:6px;">
+            <div>
+              <div><strong>Kampus 1.</strong> Jl. Surya Kencana No.1, Pamulang, Kota Tangerang Selatan, Banten 15417</div>
+              <div><strong>Kampus 2.</strong> Jl. Raya Puspitek No.46, Serpong, Kota Tangerang Selatan, Banten 15316</div>
+              <div><strong>Kampus 3.</strong> Jl. Witana Harja No.18B, Pamulang, Kota Tangerang Selatan, Banten 15417</div>
+              <div><strong>Kampus 4.</strong> Jl. Raya Jakarta-Serang, Walantaka, Kota Serang, Banten 42183</div>
+            </div>
+            <div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:8px;">
+              <span><strong>E.</strong> lsp@unpam.ac.id</span>
+              <span>|</span>
+              <span><strong>Web.</strong> www.lsp.unpam.ac.id</span>
+              <span>|</span>
+              <span><strong>IG.</strong> @lsp_unpam</span>
+            </div>
+          </div>
+        `,
+        height: 100,
+      },
+      pageSize: "A4",
+    };
+
+    try {
+      const res = await fetch("/api/export-docx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "surat-tugas.docx";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      console.error("Gagal export DOCX via backend", err);
+      alert("Export DOCX gagal. Pastikan endpoint /api/export-docx tersedia.");
+    }
+  };
+
+  const handleExportPdf = () => {
+    const element = exportRef.current;
+    if (!element) return;
+
+    html2pdf()
+      .from(element)
+      .set({
+        margin: 0,
+        filename: "surat-tugas.pdf",
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      })
+      .save();
+  };
+
+  const toolbar = useMemo(
+    () => [
+      "undo",
+      "redo",
+      "|",
+      "heading",
+      "fontFamily",
+      "fontSize",
+      "|",
+      "bold",
+      "italic",
+      "underline",
+      "removeFormat",
+      "|",
+      "alignment",
+      "outdent",
+      "indent",
+      "|",
+      "bulletedList",
+      "numberedList",
+      "|",
+      "link",
+      "blockQuote",
+      "horizontalLine",
+      "insertTable",
+      "selectAll",
+    ],
+    [],
+  );
+
+  const editorConfig = useMemo(
+    () => ({
+      plugins: editorPlugins,
+      toolbar,
+      placeholder: "Tulis surat di sini...",
+      fontFamily: {
+        options: ["default", "Times New Roman, Times, serif", "Calibri, sans-serif", "Cambria, Georgia, serif", "Arial, Helvetica, sans-serif"],
+        supportAllValues: true,
+      },
+      fontSize: {
+        options: [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24],
+        supportAllValues: true,
+      },
+      alignment: {
+        options: ["left", "center", "right", "justify"],
+      },
+      list: {
+        properties: {
+          styles: true,
+          startIndex: true,
+          reversed: true,
+        },
+      },
+      table: {
+        contentToolbar: ["tableColumn", "tableRow", "mergeTableCells", "tableProperties", "tableCellProperties"],
+      },
+      htmlSupport: {
+        allow: [
+          {
+            name: /.*?/,
+            classes: true,
+            styles: true,
+          },
+        ],
+      },
+      licenseKey: "GPL",
+    }),
+    [toolbar],
+  );
+
+  const exportHtml = useMemo(() => {
+    if (activeTemplate === "surat-tugas") {
+      return buildSuratTugasExportHtml(content);
+    }
+    return content;
+  }, [activeTemplate, content]);
 
   useEffect(() => {
     let isMounted = true;
@@ -162,22 +322,7 @@ function App() {
       if (!editorElementRef.current) return;
 
       try {
-        const editor = await ClassicEditor.create(editorElementRef.current, {
-          toolbar,
-          placeholder: "Tulis surat di sini...",
-          htmlSupport: {
-            allow: [
-              {
-                name: /.*?/,
-                attributes: true,
-                classes: true,
-                styles: true,
-              },
-            ],
-          },
-          // CKEditor 5 predefined build needs a license key value; "GPL" is valid for open-source usage.
-          licenseKey: "GPL",
-        });
+        const editor = await ClassicEditor.create(editorElementRef.current, editorConfig);
 
         if (!isMounted) return;
 
@@ -209,7 +354,7 @@ function App() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toolbar]);
+  }, [editorConfig]);
 
   useEffect(() => {
     const instance = editorInstanceRef.current;
@@ -241,6 +386,12 @@ function App() {
           <p className="lede">Tulis, edit, dan suntik template surat langsung di aplikasi tanpa perlu membuka editor lain.</p>
         </div>
         <div className="header-actions">
+          <button className="ghost" type="button" onClick={handleExportPdf}>
+            Export PDF (frontend)
+          </button>
+          <button className="ghost" type="button" onClick={handleExportDocx}>
+            Export DOCX (with header/footer)
+          </button>
           <button
             className="ghost"
             type="button"
@@ -275,7 +426,7 @@ function App() {
       </section>
 
       <section className="editor-wrapper">
-        <div className="paper">
+        <div className="paper" ref={paperRef}>
           {error && <div className="editor-error">{error}</div>}
           {loading && !error && <p className="editor-loading">Memuat editor...</p>}
           <div ref={editorElementRef} className={`editor-host${loading ? " is-loading" : ""}`} aria-label="Editor surat" />
@@ -287,6 +438,9 @@ function App() {
             <li>Kamu bisa mengganti isi dengan tombol template di atas.</li>
             <li>Integrasi backend nantinya bisa memuat template sebagai HTML.</li>
           </ul>
+        </div>
+        <div className="export-wrapper" aria-hidden="true">
+          <div className="export-paper ck-content" ref={exportRef} dangerouslySetInnerHTML={{ __html: exportHtml }} />
         </div>
       </section>
     </div>
