@@ -10,12 +10,21 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "5mb" }));
 
+const looksLikeHtml = (value: string) => /<\/?[a-z][\s\S]*?>/i.test(value);
+
 app.post("/api/export-docx", async (req: Request, res: Response) => {
   try {
-    const { templateId = "surat-tugas", content }: { templateId?: string; content?: string } = req.body ?? {};
+    const { templateId = "surat-tugas", content, contentMarkdown, contentHtml }: { templateId?: string; content?: string; contentMarkdown?: string; contentHtml?: string } = req.body ?? {};
 
-    if (!content) {
-      return res.status(400).json({ message: "content (HTML) wajib diisi" });
+    const explicitMarkdown = typeof contentMarkdown === "string" ? contentMarkdown : undefined;
+    const explicitHtml = typeof contentHtml === "string" ? contentHtml : undefined;
+    const legacyContent = typeof content === "string" ? content : undefined;
+
+    const markdownSource = explicitMarkdown ?? (legacyContent && !looksLikeHtml(legacyContent) ? legacyContent : undefined);
+    const htmlSource = explicitHtml ?? (legacyContent && looksLikeHtml(legacyContent) ? legacyContent : undefined);
+
+    if (!markdownSource && !htmlSource) {
+      return res.status(400).json({ message: "contentMarkdown atau contentHtml wajib diisi" });
     }
 
     const metadata = claimSuratMetadata();
@@ -30,7 +39,8 @@ app.post("/api/export-docx", async (req: Request, res: Response) => {
         penandatangan_jabatan: metadata.penandatangan.jabatan,
         penandatangan_nip: metadata.penandatangan.nip,
       },
-      contentHtml: content,
+      contentMarkdown: markdownSource,
+      contentHtml: htmlSource,
     });
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");

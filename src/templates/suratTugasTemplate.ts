@@ -23,49 +23,30 @@ export const suratTugasHeader = `
 `;
 
 export const suratTugasBody = `
-  <div class="word-address">
-      <p>Kepada Yth.</p>
-      <p><strong>Koordinator Program Studi Sistem Informasi</strong></p>
-      <p>Universitas Pamulang</p>
-      <p>di Tempat</p>
-    </div>
+Kepada Yth.
+**Koordinator Program Studi Sistem Informasi**
+Universitas Pamulang
+di Tempat
 
-    <p>Dengan hormat,</p>
-    <p>
-      Dalam rangka percepatan sertifikasi kompetensi mahasiswa, kami mengundang Bapak/Ibu untuk hadir pada kegiatan sosialisasi urgensi sertifikasi dengan detail berikut:
-    </p>
+Dengan hormat,
 
-    <table class="word-detail">
-      <tr>
-        <td>Hari/Tanggal</td>
-        <td>: Senin, 3 Maret 2026</td>
-      </tr>
-      <tr>
-        <td>Waktu</td>
-        <td>: 09.00 – 12.00 WIB</td>
-      </tr>
-      <tr>
-        <td>Tempat</td>
-        <td>: Auditorium Lantai 8, Kampus Viktor</td>
-      </tr>
-      <tr>
-        <td>Agenda</td>
-        <td>: Sosialisasi program sertifikasi profesi dan penyiapan dokumen</td>
-      </tr>
-    </table>
+Dalam rangka percepatan sertifikasi kompetensi mahasiswa, kami mengundang Bapak/Ibu untuk hadir pada kegiatan sosialisasi urgensi sertifikasi dengan detail berikut:
 
-    <p>Adapun pokok pembahasan yang akan disampaikan meliputi:</p>
-    <ul>
-      <li>Roadmap sertifikasi untuk mahasiswa Sistem Informasi Angkatan 2022–2024.</li>
-      <li>Standar kompetensi prioritas beserta susunan skema uji.</li>
-      <li>Mekanisme pendaftaran, verifikasi dokumen, dan jadwal asesmen.</li>
-      <li>Peran dosen pembimbing dan koordinator prodi sebagai pendamping asesor.</li>
-    </ul>
+| Detail | Informasi |
+| --- | --- |
+| Hari/Tanggal | Senin, 3 Maret 2026 |
+| Waktu | 09.00 – 12.00 WIB |
+| Tempat | Auditorium Lantai 8, Kampus Viktor |
+| Agenda | Sosialisasi program sertifikasi profesi dan penyiapan dokumen |
 
-    <p>
-      Mengingat urgensi program ini sebagai syarat kelulusan dan akreditasi prodi, kami berharap kehadiran Bapak/Ibu tepat waktu.
-      Besar harapan kami agar informasi ini dapat diteruskan kepada tim pelaksana prodi untuk menyiapkan data calon peserta.
-    </p>
+Adapun pokok pembahasan yang akan disampaikan meliputi:
+
+- Roadmap sertifikasi untuk mahasiswa Sistem Informasi Angkatan 2022–2024.
+- Standar kompetensi prioritas beserta susunan skema uji.
+- Mekanisme pendaftaran, verifikasi dokumen, dan jadwal asesmen.
+- Peran dosen pembimbing dan koordinator prodi sebagai pendamping asesor.
+
+Mengingat urgensi program ini sebagai syarat kelulusan dan akreditasi prodi, kami berharap kehadiran Bapak/Ibu tepat waktu. Besar harapan kami agar informasi ini dapat diteruskan kepada tim pelaksana prodi untuk menyiapkan data calon peserta.
 `;
 
 export const suratTugasFooter = `

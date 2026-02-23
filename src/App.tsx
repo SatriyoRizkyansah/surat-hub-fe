@@ -3,6 +3,7 @@
 // @ts-nocheck
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import html2pdf from "html2pdf.js";
+import { marked } from "marked";
 import {
   Alignment,
   BlockQuote,
@@ -29,6 +30,7 @@ import {
   TableProperties,
   TableToolbar,
   Underline,
+  Markdown,
 } from "ckeditor5";
 import "ckeditor5/ckeditor5.css";
 import "./App.css";
@@ -52,6 +54,22 @@ type SuratMetadata = {
   tanggal: string;
   unit: string;
   penandatangan: PenandatanganInfo;
+};
+
+const MARKDOWN_OPTIONS = {
+  gfm: true,
+  breaks: true,
+  headerIds: false,
+  mangle: false,
+};
+
+const convertMarkdownToHtml = (markdown: string) => {
+  if (!markdown?.trim()) {
+    return "<p></p>";
+  }
+
+  const parsed = marked.parse(markdown, MARKDOWN_OPTIONS);
+  return typeof parsed === "string" ? parsed : parsed.toString();
 };
 
 const formatIndonesianDate = (input: Date | string) => {
@@ -123,6 +141,7 @@ const editorPlugins = [
   GeneralHtmlSupport,
   PasteFromOffice,
   SelectAll,
+  Markdown,
 ];
 
 const templates: Template[] = [
@@ -135,55 +154,59 @@ const templates: Template[] = [
     id: "undangan-rapat",
     name: "Undangan Rapat",
     content: `
-      <p><strong>Nomor</strong>: 01/UND/II/2026</p>
-      <p><strong>Perihal</strong>: Undangan Rapat Koordinasi</p>
-      <p><br /></p>
-      <p>Kepada Yth.</p>
-      <p>Tim Operasional</p>
-      <p>Di Tempat</p>
-      <p><br /></p>
-      <p>Dengan hormat,</p>
-      <p>Sehubungan dengan persiapan program baru, kami mengundang Bapak/Ibu untuk hadir pada rapat koordinasi yang akan dilaksanakan pada:</p>
-      <ul>
-        <li><strong>Hari/Tanggal</strong>: Senin, 24 Februari 2026</li>
-        <li><strong>Waktu</strong>: 09.00 - 11.00 WIB</li>
-        <li><strong>Tempat</strong>: Ruang Rapat Lantai 3</li>
-        <li><strong>Agenda</strong>: Sinkronisasi timeline dan kebutuhan</li>
-      </ul>
-      <p>Atas perhatian dan kehadirannya, kami ucapkan terima kasih.</p>
-      <p><br /></p>
-      <p>Hormat kami,</p>
-      <p><strong>Manajer Operasional</strong></p>
-      <p><br /><br /></p>
-      <p>______________________</p>
+**Nomor**: 01/UND/II/2026
+**Perihal**: Undangan Rapat Koordinasi
+
+Kepada Yth.
+Tim Operasional
+Di Tempat
+
+Dengan hormat,
+
+Sehubungan dengan persiapan program baru, kami mengundang Bapak/Ibu untuk hadir pada rapat koordinasi yang akan dilaksanakan pada:
+
+- **Hari/Tanggal**: Senin, 24 Februari 2026
+- **Waktu**: 09.00 - 11.00 WIB
+- **Tempat**: Ruang Rapat Lantai 3
+- **Agenda**: Sinkronisasi timeline dan kebutuhan
+
+Atas perhatian dan kehadirannya, kami ucapkan terima kasih.
+
+Hormat kami,
+
+**Manajer Operasional**
+
+______________________
     `,
   },
   {
     id: "surat-pemberitahuan",
     name: "Pemberitahuan Internal",
     content: `
-      <p><strong>Nomor</strong>: 05/PBT/II/2026</p>
-      <p><strong>Perihal</strong>: Pemberitahuan Pemeliharaan Sistem</p>
-      <p><br /></p>
-      <p>Kepada Yth.</p>
-      <p>Seluruh Karyawan</p>
-      <p>Di Tempat</p>
-      <p><br /></p>
-      <p>Dengan hormat,</p>
-      <p>Berikut kami informasikan akan dilakukan pemeliharaan sistem pada:</p>
-      <ul>
-        <li><strong>Hari/Tanggal</strong>: Sabtu, 1 Maret 2026</li>
-        <li><strong>Waktu</strong>: 20.00 - 23.00 WIB</li>
-        <li><strong>Dampak</strong>: Akses aplikasi internal akan terbatas</li>
-      </ul>
-      <p>Mohon menyesuaikan rencana pekerjaan dan pastikan data penting telah di-backup sebelum waktu tersebut.</p>
-      <p><br /></p>
-      <p>Terima kasih atas pengertiannya.</p>
-      <p><br /></p>
-      <p>Salam,</p>
-      <p><strong>Divisi IT</strong></p>
-      <p><br /><br /></p>
-      <p>______________________</p>
+**Nomor**: 05/PBT/II/2026
+**Perihal**: Pemberitahuan Pemeliharaan Sistem
+
+Kepada Yth.
+Seluruh Karyawan
+Di Tempat
+
+Dengan hormat,
+
+Berikut kami informasikan akan dilakukan pemeliharaan sistem pada:
+
+- **Hari/Tanggal**: Sabtu, 1 Maret 2026
+- **Waktu**: 20.00 - 23.00 WIB
+- **Dampak**: Akses aplikasi internal akan terbatas
+
+Mohon menyesuaikan rencana pekerjaan dan pastikan data penting telah di-backup sebelum waktu tersebut.
+
+Terima kasih atas pengertiannya.
+
+Salam,
+
+**Divisi IT**
+
+______________________
     `,
   },
 ];
@@ -245,13 +268,16 @@ function App() {
     loadMetadata();
   }, [loadMetadata]);
 
+  const renderedContentHtml = useMemo(() => convertMarkdownToHtml(content), [content]);
+
   const handleExportDocx = async () => {
     if (metaLoading) return;
     const filename = `${activeTemplate || "surat"}.docx`;
 
     const payload = {
       templateId: activeTemplate || "surat-tugas",
-      content,
+      contentMarkdown: content,
+      contentHtml: renderedContentHtml,
     };
 
     setDocxLoading(true);
@@ -360,12 +386,7 @@ function App() {
     [toolbar],
   );
 
-  const exportHtml = useMemo(() => {
-    if (activeTemplate === "surat-tugas") {
-      return buildSuratTugasHtml(content, suratMeta);
-    }
-    return content;
-  }, [activeTemplate, content, suratMeta]);
+  const exportHtml = activeTemplate === "surat-tugas" ? buildSuratTugasHtml(renderedContentHtml, suratMeta) : renderedContentHtml;
 
   const exportButtonLabel = docxLoading ? "Sedang menyiapkan DOCX..." : metaLoading ? "Menunggu metadata..." : "Export DOCX (backend)";
   const isExportDisabled = docxLoading || metaLoading;
@@ -455,7 +476,8 @@ function App() {
             onClick={() => {
               console.log("Dummy POST payload", {
                 template: activeTemplate,
-                content,
+                contentMarkdown: content,
+                contentHtml: renderedContentHtml,
               });
               alert("Simulasi kirim ke backend (cek console untuk payload)");
             }}

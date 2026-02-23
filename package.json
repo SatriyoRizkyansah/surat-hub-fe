@@ -12,6 +12,7 @@
   "dependencies": {
     "ckeditor5": "^44.3.0",
     "html2pdf.js": "^0.14.0",
+    "marked": "^17.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
