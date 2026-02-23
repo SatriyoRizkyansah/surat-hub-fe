@@ -4,6 +4,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import html2pdf from "html2pdf.js";
 import { marked } from "marked";
+import TurndownService from "turndown";
+import { gfm } from "turndown-plugin-gfm";
 import {
   Alignment,
   BlockQuote,
@@ -61,6 +63,71 @@ const MARKDOWN_OPTIONS = {
   breaks: true,
   headerIds: false,
   mangle: false,
+};
+
+const turndownService = new TurndownService({
+  headingStyle: "atx",
+  codeBlockStyle: "fenced",
+  bulletListMarker: "-",
+  emDelimiter: "_",
+  strongDelimiter: "**",
+});
+turndownService.use(gfm);
+
+const normalizeTableCell = (value: string) => value.replace(/\s+/g, " ").trim().replace(/\|/g, "\\|");
+
+const buildMarkdownTable = (table: HTMLTableElement) => {
+  const rows = Array.from(table.querySelectorAll("tr")).map((row) => Array.from(row.querySelectorAll("th,td")).map((cell) => normalizeTableCell(cell.textContent ?? "")));
+
+  if (!rows.length) {
+    return "";
+  }
+
+  const header = rows[0];
+  const columnCount = header.length || Math.max(...rows.map((row) => row.length));
+
+  const normalizeRow = (row: string[]) => {
+    const cells = [...row];
+    while (cells.length < columnCount) {
+      cells.push("");
+    }
+    return cells.slice(0, columnCount);
+  };
+
+  const headerRow = normalizeRow(header);
+  const separatorRow = new Array(columnCount).fill("---");
+  const bodyRows = rows.slice(1).map(normalizeRow);
+
+  const lines = [`| ${headerRow.join(" | ")} |`, `| ${separatorRow.join(" | ")} |`, ...bodyRows.map((row) => `| ${row.join(" | ")} |`)];
+
+  return `\n\n${lines.join("\n")}\n\n`;
+};
+
+turndownService.addRule("figureTable", {
+  filter: (node) => node.nodeName === "FIGURE" && (node as HTMLElement).classList.contains("table"),
+  replacement: (_content, node) => {
+    const table = (node as HTMLElement).querySelector("table");
+    return table ? buildMarkdownTable(table as HTMLTableElement) : "";
+  },
+});
+
+turndownService.addRule("htmlTable", {
+  filter: (node) => node.nodeName === "TABLE",
+  replacement: (_content, node) => buildMarkdownTable(node as HTMLTableElement),
+});
+
+const looksLikeHtml = (value: string) => /<\/?[a-z][\s\S]*?>/i.test(value);
+
+const normalizeMarkdownFromEditor = (value: string) => {
+  if (!value?.trim()) {
+    return "";
+  }
+
+  if (!looksLikeHtml(value)) {
+    return value;
+  }
+
+  return turndownService.turndown(value);
 };
 
 const convertMarkdownToHtml = (markdown: string) => {
@@ -269,6 +336,7 @@ function App() {
   }, [loadMetadata]);
 
   const renderedContentHtml = useMemo(() => convertMarkdownToHtml(content), [content]);
+  const markdownPayload = useMemo(() => normalizeMarkdownFromEditor(content), [content]);
 
   const handleExportDocx = async () => {
     if (metaLoading) return;
@@ -276,7 +344,7 @@ function App() {
 
     const payload = {
       templateId: activeTemplate || "surat-tugas",
-      contentMarkdown: content,
+      contentMarkdown: markdownPayload,
       contentHtml: renderedContentHtml,
     };
 
@@ -476,7 +544,7 @@ function App() {
             onClick={() => {
               console.log("Dummy POST payload", {
                 template: activeTemplate,
-                contentMarkdown: content,
+                contentMarkdown: markdownPayload,
                 contentHtml: renderedContentHtml,
               });
               alert("Simulasi kirim ke backend (cek console untuk payload)");
