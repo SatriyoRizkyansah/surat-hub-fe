@@ -23,14 +23,7 @@ export const suratTugasHeader = `
 `;
 
 export const suratTugasBody = `
-  <div class="surat-tugas surat-word">
-    <div class="word-meta">
-      <p><span>Nomor</span>: 012/UND/LSP/II/2026</p>
-      <p><span>Lampiran</span>: -</p>
-      <p><span>Hal</span>: Undangan Sosialisasi Urgensi Sertifikasi Mahasiswa SI</p>
-    </div>
-
-    <div class="word-address">
+  <div class="word-address">
       <p>Kepada Yth.</p>
       <p><strong>Koordinator Program Studi Sistem Informasi</strong></p>
       <p>Universitas Pamulang</p>
@@ -73,15 +66,6 @@ export const suratTugasBody = `
       Mengingat urgensi program ini sebagai syarat kelulusan dan akreditasi prodi, kami berharap kehadiran Bapak/Ibu tepat waktu.
       Besar harapan kami agar informasi ini dapat diteruskan kepada tim pelaksana prodi untuk menyiapkan data calon peserta.
     </p>
-
-    <div class="word-signature">
-      <p>Pamulang, 18 Februari 2026</p>
-      <p><strong>Kepala Lembaga Sertifikasi Profesi</strong></p>
-      <div class="word-signature__space"></div>
-      <p class="word-signature__name">Dr. Nur Azizah, S.Kom., M.M.</p>
-      <p class="word-signature__id">NIP. 19790821 200801 2 002</p>
-    </div>
-  </div>
 `;
 
 export const suratTugasFooter = `

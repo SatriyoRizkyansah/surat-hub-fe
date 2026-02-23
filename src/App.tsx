@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // @ts-nocheck
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import html2pdf from "html2pdf.js";
 import {
   Alignment,
@@ -40,6 +40,64 @@ type Template = {
   name: string;
   content: string;
 };
+
+type PenandatanganInfo = {
+  jabatan: string;
+  nama: string;
+  nip: string;
+};
+
+type SuratMetadata = {
+  nomor: string;
+  tanggal: string;
+  unit: string;
+  penandatangan: PenandatanganInfo;
+};
+
+const formatIndonesianDate = (input: Date | string) => {
+  const date = typeof input === "string" ? new Date(input) : input;
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(date);
+};
+
+const defaultMetadata: SuratMetadata = {
+  nomor: "012/UND/LSP/II/2026",
+  tanggal: formatIndonesianDate(new Date()),
+  unit: "Lembaga Sertifikasi Profesi",
+  penandatangan: {
+    jabatan: "Kepala Lembaga Sertifikasi Profesi",
+    nama: "Dr. Nur Azizah, S.Kom., M.M.",
+    nip: "19790821 200801 2 002",
+  },
+};
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000";
+
+const downloadBlob = (blob: Blob, filename: string) => {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(link.href);
+};
+
+const buildMetadataBlock = (meta: SuratMetadata) => `
+  <div class="word-meta">
+    <p><span>Nomor</span>: ${meta.nomor || "-"}</p>
+    <p><span>Tanggal</span>: ${meta.tanggal || "-"}</p>
+    <p><span>Unit</span>: ${meta.unit || "-"}</p>
+  </div>
+`;
+
+const buildSignatureBlock = (meta: SuratMetadata) => `
+  <div class="word-signature">
+    <p>${meta.tanggal ? `Pamulang, ${meta.tanggal}` : ""}</p>
+    <p><strong>${meta.penandatangan.jabatan || ""}</strong></p>
+    <div class="word-signature__space"></div>
+    <p class="word-signature__name">${meta.penandatangan.nama || ""}</p>
+    <p class="word-signature__id">NIP. ${meta.penandatangan.nip || "-"}</p>
+  </div>
+`;
 const editorPlugins = [
   Essentials,
   Paragraph,
@@ -130,79 +188,75 @@ const templates: Template[] = [
   },
 ];
 
+const buildSuratTugasHtml = (body: string, meta: SuratMetadata, options?: { includeChrome?: boolean }) => {
+  const includeChrome = options?.includeChrome ?? true;
+  const cleanedBody = body.includes("word-content") ? body : `<div class="word-content">${body}</div>`;
+  return `
+    <div class="surat-tugas surat-word">
+      ${includeChrome ? suratTugasHeader : ""}
+      ${buildMetadataBlock(meta)}
+      ${cleanedBody}
+      ${buildSignatureBlock(meta)}
+      ${includeChrome ? suratTugasFooter : ""}
+    </div>
+  `;
+};
+
 function App() {
   const [content, setContent] = useState<string>(templates[0]?.content ?? "");
   const [activeTemplate, setActiveTemplate] = useState<string>(templates[0]?.id ?? "");
+  const [suratMeta, setSuratMeta] = useState<SuratMetadata>(defaultMetadata);
+  const [metaLoading, setMetaLoading] = useState(true);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [docxLoading, setDocxLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const editorElementRef = useRef<HTMLDivElement | null>(null);
   const editorInstanceRef = useRef<any>(null);
   const paperRef = useRef<HTMLDivElement | null>(null);
   const exportRef = useRef<HTMLDivElement | null>(null);
 
-  const buildSuratTugasExportHtml = (body: string) => {
-    const hasWrapper = body.includes('class="surat-tugas"');
-    if (hasWrapper) {
-      return body.replace('<div class="surat-tugas">', `<div class="surat-tugas">${suratTugasHeader}`).replace(/<\/div>\s*$/, `${suratTugasFooter}</div>`);
+  const loadMetadata = useCallback(async () => {
+    setMetaLoading(true);
+    setMetadataError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/surat/metadata/preview`);
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const data = await res.json();
+      setSuratMeta({
+        nomor: data.no_surat,
+        tanggal: data.tanggal_terbit,
+        unit: data.unit_pengirim,
+        penandatangan: {
+          jabatan: data.penandatangan?.jabatan ?? defaultMetadata.penandatangan.jabatan,
+          nama: data.penandatangan?.nama ?? defaultMetadata.penandatangan.nama,
+          nip: data.penandatangan?.nip ?? defaultMetadata.penandatangan.nip,
+        },
+      });
+    } catch (err) {
+      console.error("Gagal memuat metadata surat", err);
+      setMetadataError("Tidak dapat memuat metadata otomatis, gunakan nilai default sementara.");
+    } finally {
+      setMetaLoading(false);
     }
+  }, []);
 
-    return `<div class="surat-tugas">${suratTugasHeader}${body}${suratTugasFooter}</div>`;
-  };
+  useEffect(() => {
+    loadMetadata();
+  }, [loadMetadata]);
 
   const handleExportDocx = async () => {
+    if (metaLoading) return;
+    const filename = `${activeTemplate || "surat"}.docx`;
+
     const payload = {
+      templateId: activeTemplate || "surat-tugas",
       content,
-      header: {
-        html: `
-          <div style="font-family:'Times New Roman', serif; color:#001f5f; text-align:center;">
-            <div style="display:flex; gap:6px; margin-bottom:8px;">
-              <span style="flex:1; height:6px; background:#c00000; border-radius:999px; display:block;"></span>
-              <span style="flex:1; height:6px; background:#ffc000; border-radius:999px; display:block;"></span>
-              <span style="flex:1; height:6px; background:#001f5f; border-radius:999px; display:block;"></span>
-            </div>
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
-              <img src="/assets/logo/logo-kiri.svg" style="width:110px; height:110px; object-fit:contain;" />
-              <div style="flex:1;">
-                <div style="font-weight:700; letter-spacing:0.5px;">YAYASAN SASMITA JAYA</div>
-                <div style="font-weight:700; font-size:22px; letter-spacing:1px;">UNIVERSITAS PAMULANG</div>
-                <div style="font-weight:700; font-size:14px; margin-top:4px;">LEMBAGA SERTIFIKASI PROFESI</div>
-                <div style="font-style:italic; font-weight:700; margin-top:2px;">“LEMBAGA SERTIFIKASI PROFESI”</div>
-              </div>
-              <img src="/assets/logo/logo-kanan.svg" style="width:130px; height:130px; object-fit:contain;" />
-            </div>
-            <div style="margin-top:8px;">
-              <div style="border-top:2px solid #001f5f; margin:2px auto; width:90%;"></div>
-              <div style="border-top:4px solid #001f5f; margin:2px auto; width:90%;"></div>
-            </div>
-          </div>
-        `,
-        height: 120,
-      },
-      footer: {
-        html: `
-          <div style="font-family:'Times New Roman', serif; font-size:9pt; color:#1f385f; border-top:2px solid #001f5f; padding-top:6px;">
-            <div>
-              <div><strong>Kampus 1.</strong> Jl. Surya Kencana No.1, Pamulang, Kota Tangerang Selatan, Banten 15417</div>
-              <div><strong>Kampus 2.</strong> Jl. Raya Puspitek No.46, Serpong, Kota Tangerang Selatan, Banten 15316</div>
-              <div><strong>Kampus 3.</strong> Jl. Witana Harja No.18B, Pamulang, Kota Tangerang Selatan, Banten 15417</div>
-              <div><strong>Kampus 4.</strong> Jl. Raya Jakarta-Serang, Walantaka, Kota Serang, Banten 42183</div>
-            </div>
-            <div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:8px;">
-              <span><strong>E.</strong> lsp@unpam.ac.id</span>
-              <span>|</span>
-              <span><strong>Web.</strong> www.lsp.unpam.ac.id</span>
-              <span>|</span>
-              <span><strong>IG.</strong> @lsp_unpam</span>
-            </div>
-          </div>
-        `,
-        height: 100,
-      },
-      pageSize: "A4",
     };
 
+    setDocxLoading(true);
     try {
-      const res = await fetch("/api/export-docx", {
+      const res = await fetch(`${API_BASE_URL}/api/export-docx`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -211,14 +265,12 @@ function App() {
       if (!res.ok) throw new Error(`Status ${res.status}`);
 
       const blob = await res.blob();
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "surat-tugas.docx";
-      link.click();
-      URL.revokeObjectURL(link.href);
+      downloadBlob(blob, filename);
     } catch (err) {
-      console.error("Gagal export DOCX via backend", err);
-      alert("Export DOCX gagal. Pastikan endpoint /api/export-docx tersedia.");
+      console.error("Gagal membangun DOCX", err);
+      alert(`Export DOCX gagal. Pastikan backend jalan di ${API_BASE_URL} atau coba lagi nanti.`);
+    } finally {
+      setDocxLoading(false);
     }
   };
 
@@ -310,10 +362,13 @@ function App() {
 
   const exportHtml = useMemo(() => {
     if (activeTemplate === "surat-tugas") {
-      return buildSuratTugasExportHtml(content);
+      return buildSuratTugasHtml(content, suratMeta);
     }
     return content;
-  }, [activeTemplate, content]);
+  }, [activeTemplate, content, suratMeta]);
+
+  const exportButtonLabel = docxLoading ? "Sedang menyiapkan DOCX..." : metaLoading ? "Menunggu metadata..." : "Export DOCX (backend)";
+  const isExportDisabled = docxLoading || metaLoading;
 
   useEffect(() => {
     let isMounted = true;
@@ -375,6 +430,8 @@ function App() {
   const handleClear = () => {
     setActiveTemplate("");
     setContent("");
+    setSuratMeta(defaultMetadata);
+    loadMetadata();
   };
 
   return (
@@ -389,8 +446,8 @@ function App() {
           <button className="ghost" type="button" onClick={handleExportPdf}>
             Export PDF (frontend)
           </button>
-          <button className="ghost" type="button" onClick={handleExportDocx}>
-            Export DOCX (with header/footer)
+          <button className="ghost" type="button" onClick={handleExportDocx} disabled={isExportDisabled} aria-busy={isExportDisabled}>
+            {exportButtonLabel}
           </button>
           <button
             className="ghost"
@@ -421,6 +478,44 @@ function App() {
           ))}
           <button className="template-button" type="button" onClick={handleClear}>
             Template kosong
+          </button>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-title">Detail surat otomatis</div>
+        {metadataError && <p className="meta-error">{metadataError}</p>}
+        <div className="meta-grid meta-grid--readonly">
+          <div className="meta-field">
+            <span>Nomor Surat</span>
+            <p className="meta-value" aria-live="polite">
+              {metaLoading ? "Memuat..." : suratMeta.nomor || "-"}
+            </p>
+          </div>
+          <div className="meta-field">
+            <span>Tanggal Terbit</span>
+            <p className="meta-value">{metaLoading ? "Memuat..." : suratMeta.tanggal || "-"}</p>
+          </div>
+          <div className="meta-field">
+            <span>Unit Pengirim</span>
+            <p className="meta-value">{metaLoading ? "Memuat..." : suratMeta.unit || "-"}</p>
+          </div>
+          <div className="meta-field">
+            <span>Penandatangan</span>
+            <p className="meta-value">{metaLoading ? "Memuat..." : suratMeta.penandatangan.jabatan}</p>
+          </div>
+          <div className="meta-field">
+            <span>Nama</span>
+            <p className="meta-value">{metaLoading ? "Memuat..." : suratMeta.penandatangan.nama}</p>
+          </div>
+          <div className="meta-field">
+            <span>NIP</span>
+            <p className="meta-value">{metaLoading ? "Memuat..." : suratMeta.penandatangan.nip}</p>
+          </div>
+        </div>
+        <div className="meta-actions">
+          <button className="ghost" type="button" onClick={loadMetadata} disabled={metaLoading} aria-busy={metaLoading}>
+            {metaLoading ? "Memuat metadata..." : "Perbarui metadata"}
           </button>
         </div>
       </section>
