@@ -14,8 +14,9 @@
     "docxtemplater": "^3.41.0",
     "express": "^4.19.2",
     "html-to-docx": "^1.8.0",
-    "node-html-parser": "^7.0.2",
-    "pizzip": "^3.1.7"
+    "libreoffice-convert": "^1.8.1",
+    "pizzip": "^3.1.7",
+    "puppeteer": "^23.9.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

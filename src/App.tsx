@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // @ts-nocheck
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import html2pdf from "html2pdf.js";
 import {
   Alignment,
   BlockQuote,
@@ -210,6 +209,7 @@ function App() {
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [docxLoading, setDocxLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const editorElementRef = useRef<HTMLDivElement | null>(null);
   const editorInstanceRef = useRef<any>(null);
@@ -274,20 +274,33 @@ function App() {
     }
   };
 
-  const handleExportPdf = () => {
-    const element = exportRef.current;
-    if (!element) return;
+  const handleExportPdf = async () => {
+    if (metaLoading) return;
+    const filename = `${activeTemplate || "surat"}.pdf`;
 
-    html2pdf()
-      .from(element)
-      .set({
-        margin: 0,
-        filename: "surat-tugas.pdf",
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      })
-      .save();
+    const payload = {
+      templateId: activeTemplate || "surat-tugas",
+      content,
+    };
+
+    setPdfLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/export-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+
+      const blob = await res.blob();
+      downloadBlob(blob, filename);
+    } catch (err) {
+      console.error("Gagal membangun PDF", err);
+      alert(`Export PDF gagal. Pastikan backend jalan di ${API_BASE_URL} atau coba lagi nanti.`);
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   const toolbar = useMemo(
@@ -369,6 +382,8 @@ function App() {
 
   const exportButtonLabel = docxLoading ? "Sedang menyiapkan DOCX..." : metaLoading ? "Menunggu metadata..." : "Export DOCX (backend)";
   const isExportDisabled = docxLoading || metaLoading;
+  const exportPdfLabel = pdfLoading ? "Sedang menyiapkan PDF..." : metaLoading ? "Menunggu metadata..." : "Export PDF (backend)";
+  const isPdfDisabled = pdfLoading || metaLoading;
 
   useEffect(() => {
     let isMounted = true;
@@ -443,8 +458,8 @@ function App() {
           <p className="lede">Tulis, edit, dan suntik template surat langsung di aplikasi tanpa perlu membuka editor lain.</p>
         </div>
         <div className="header-actions">
-          <button className="ghost" type="button" onClick={handleExportPdf}>
-            Export PDF (frontend)
+          <button className="ghost" type="button" onClick={handleExportPdf} disabled={isPdfDisabled} aria-busy={isPdfDisabled}>
+            {exportPdfLabel}
           </button>
           <button className="ghost" type="button" onClick={handleExportDocx} disabled={isExportDisabled} aria-busy={isExportDisabled}>
             {exportButtonLabel}
@@ -454,7 +469,7 @@ function App() {
             type="button"
             onClick={() => {
               console.log("Dummy POST payload", {
-                template: activeTemplate,
+                template: activeTemplate || "surat-tugas",
                 content,
               });
               alert("Simulasi kirim ke backend (cek console untuk payload)");
