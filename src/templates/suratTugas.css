@@ -4,17 +4,50 @@
   --word-red: #c00000;
   --word-text: #1f2a37;
   --word-muted: #4b5563;
+  --word-line-height: 1.15;
+  --word-page-width: 210mm;
+  --word-margin-top: 6mm;
+  --word-margin-bottom: 14mm;
+  --word-margin-x: 15mm;
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+:where(.ck-content, .export-paper) .surat-tugas {
+  width: var(--word-page-width);
+  margin: 0 auto;
+  min-height: 297mm;
+  background: #fff;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  padding: var(--word-margin-top) var(--word-margin-x) var(--word-margin-bottom);
+  box-sizing: border-box;
 }
 
 :where(.ck-content, .export-paper) .surat-word {
   font-family: "Times New Roman", serif;
   font-size: 12pt;
-  line-height: 1.5;
+  line-height: var(--word-line-height);
   color: var(--word-text);
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  gap: 12px;
+  flex: 1;
+  box-sizing: border-box;
+}
+
+:where(.ck-content, .export-paper) .surat-word p,
+:where(.ck-content, .export-paper) .surat-word li {
+  margin: 0 0 6pt;
+}
+
+:where(.ck-content, .export-paper) .word-header,
+:where(.ck-content, .export-paper) .word-footer {
+  width: 100%;
+  background: #fff;
 }
 
 :where(.ck-content, .export-paper) .word-header {
@@ -22,92 +55,107 @@
   color: var(--word-navy);
 }
 
-:where(.ck-content, .export-paper) .word-ribbon {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
+:where(.ck-content, .export-paper) .word-header__inner {
+  display: grid;
+  grid-template-columns: 120px 1fr 120px;
+  align-items: center;
+  gap: 16px;
 }
 
-:where(.ck-content, .export-paper) .word-ribbon__bar {
-  flex: 1;
-  height: 6px;
-  border-radius: 999px;
-}
-
-.word-ribbon__bar--red {
-  background: var(--word-red);
-}
-
-.word-ribbon__bar--gold {
-  background: var(--word-gold);
-}
-
-.word-ribbon__bar--navy {
-  background: var(--word-navy);
-}
-
-:where(.ck-content, .export-paper) .word-branding {
+:where(.ck-content, .export-paper) .word-logo-frame {
+  width: 120px;
+  height: 120px;
+  border: 1.4px solid #d1d9ef;
+  border-radius: 6px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 18px;
+  justify-content: center;
+  padding: 4px;
+  background: #fff;
 }
 
 :where(.ck-content, .export-paper) .word-logo {
-  width: 110px;
-  height: 110px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
 :where(.ck-content, .export-paper) .word-logo--right {
-  width: 140px;
+  width: 100px;
 }
 
 :where(.ck-content, .export-paper) .word-identity {
   flex: 1;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+:where(.ck-content, .export-paper) .word-identity__foundation {
+  letter-spacing: 1.5px;
+  margin: 0;
+  font-weight: 700;
 }
 
 :where(.ck-content, .export-paper) .word-identity h1 {
-  margin: 0;
-  font-size: 22pt;
-  letter-spacing: 1px;
-}
-
-:where(.ck-content, .export-paper) .word-foundation,
-:where(.ck-content, .export-paper) .word-unit,
-:where(.ck-content, .export-paper) .word-motto {
   margin: 2px 0;
-  font-weight: bold;
-  letter-spacing: 0.5px;
+  font-size: 26pt;
+  letter-spacing: 2px;
 }
 
-:where(.ck-content, .export-paper) .word-unit {
-  font-size: 14pt;
-}
-
-:where(.ck-content, .export-paper) .word-motto {
-  font-style: italic;
+:where(.ck-content, .export-paper) .word-identity__tagline {
+  margin: 0;
+  font-size: 12pt;
+  font-weight: 600;
+  letter-spacing: 1.2px;
 }
 
 :where(.ck-content, .export-paper) .word-divider {
-  margin-top: 10px;
+  margin-top: 4px;
 }
 
 :where(.ck-content, .export-paper) .word-divider span {
   display: block;
   border-top: 2px solid var(--word-navy);
-  margin: 4px auto;
-  width: 90%;
+  width: 100%;
+  margin: 3px 0 0;
+}
+
+.word-divider--double span:first-child {
+  border-top-width: 3px;
+  margin-top: 0;
+}
+
+.word-divider--double span:last-child {
+  border-top-width: 1.5px;
+}
+
+:where(.ck-content, .export-paper) .word-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  margin: 4mm 0 8mm;
 }
 
 :where(.ck-content, .export-paper) .word-meta {
-  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+:where(.ck-content, .export-paper) .word-meta p {
+  display: flex;
+  gap: 8px;
 }
 
 :where(.ck-content, .export-paper) .word-meta span {
-  font-weight: bold;
-  min-width: 110px;
-  display: inline-block;
+  font-weight: 700;
+  min-width: 120px;
+}
+
+:where(.ck-content, .export-paper) .word-address {
+  margin-top: 10px;
 }
 
 :where(.ck-content, .export-paper) .word-address p {
@@ -117,13 +165,21 @@
 :where(.ck-content, .export-paper) .word-detail {
   width: 100%;
   border-collapse: collapse;
-  margin: 12px 0;
+  margin: 8px 0 6px;
+  font-size: 12pt;
 }
 
 :where(.ck-content, .export-paper) .word-detail td {
-  padding: 6px 8px;
+  padding: 4px 8px;
   border: 1px solid #d6dae2;
   vertical-align: top;
+  line-height: var(--word-line-height);
+}
+
+:where(.ck-content, .export-paper) .word-detail td:first-child {
+  width: 150px;
+  font-weight: 600;
+  background: #f2f4f8;
 }
 
 :where(.ck-content, .export-paper) .surat-word ul {
@@ -134,22 +190,92 @@
 :where(.ck-content, .export-paper) .word-signature {
   align-self: flex-end;
   text-align: left;
-  margin-top: 24px;
+  margin-top: 16px;
+}
+
+:where(.ck-content, .export-paper) .word-signature p {
+  margin: 0 0 4px;
 }
 
 :where(.ck-content, .export-paper) .word-signature__space {
-  height: 70px;
+  height: 72px;
 }
 
 :where(.ck-content, .export-paper) .word-footer {
-  margin-top: auto;
-  padding-top: 12px;
+  padding-top: 8mm;
   border-top: 2px solid var(--word-navy);
   font-size: 10pt;
   color: var(--word-muted);
 }
 
+:where(.ck-content, .export-paper) .word-footer__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 :where(.ck-content, .export-paper) .word-footer__addresses p,
 :where(.ck-content, .export-paper) .word-footer__contacts p {
   margin: 2px 0;
+}
+
+:where(.ck-content, .export-paper) .word-footer__contacts {
+  margin-top: 4px;
+  color: var(--word-navy);
+  font-weight: 600;
+}
+
+:where(.ck-content, .export-paper) .word-footer__bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.word-footer__bar-segment {
+  flex: 1;
+}
+
+.word-footer__bar-segment--navy {
+  background: var(--word-navy);
+}
+
+.word-footer__bar-segment--gold {
+  background: var(--word-gold);
+}
+
+.word-footer__bar-segment--red {
+  background: var(--word-red);
+}
+
+@media print {
+  :where(.export-paper) .word-header {
+    position: running(word-header);
+  }
+
+  :where(.export-paper) .word-footer {
+    position: running(word-footer);
+  }
+
+  :where(.export-paper) .word-body {
+    margin-top: 26mm;
+    margin-bottom: 24mm;
+  }
+
+  :where(.ck-content, .export-paper) .surat-tugas {
+    box-shadow: none;
+  }
+
+  @page {
+    margin: 0;
+    size: A4;
+    @top-center {
+      content: element(word-header);
+    }
+    @bottom-center {
+      content: element(word-footer);
+    }
+  }
 }

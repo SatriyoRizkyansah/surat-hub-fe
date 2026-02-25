@@ -33,7 +33,8 @@ import {
 import "ckeditor5/ckeditor5.css";
 import "./App.css";
 import "./templates/suratTugas.css";
-import { suratTugasBody, suratTugasFooter, suratTugasHeader } from "./templates/suratTugasTemplate";
+import { ensureLetterhead, letterheadDocxFooterHtml, letterheadDocxHeaderHtml, wrapWithLetterhead } from "./templates/letterhead";
+import { suratTugasBody } from "./templates/suratTugasTemplate";
 
 type Template = {
   id: string;
@@ -76,7 +77,7 @@ const templates: Template[] = [
   {
     id: "undangan-rapat",
     name: "Undangan Rapat",
-    content: `
+    content: wrapWithLetterhead(`
       <p><strong>Nomor</strong>: 01/UND/II/2026</p>
       <p><strong>Perihal</strong>: Undangan Rapat Koordinasi</p>
       <p><br /></p>
@@ -98,12 +99,12 @@ const templates: Template[] = [
       <p><strong>Manajer Operasional</strong></p>
       <p><br /><br /></p>
       <p>______________________</p>
-    `,
+    `),
   },
   {
     id: "surat-pemberitahuan",
     name: "Pemberitahuan Internal",
-    content: `
+    content: wrapWithLetterhead(`
       <p><strong>Nomor</strong>: 05/PBT/II/2026</p>
       <p><strong>Perihal</strong>: Pemberitahuan Pemeliharaan Sistem</p>
       <p><br /></p>
@@ -126,12 +127,14 @@ const templates: Template[] = [
       <p><strong>Divisi IT</strong></p>
       <p><br /><br /></p>
       <p>______________________</p>
-    `,
+    `),
   },
 ];
 
+const blankTemplate = wrapWithLetterhead("<p><br /></p>");
+
 function App() {
-  const [content, setContent] = useState<string>(templates[0]?.content ?? "");
+  const [content, setContent] = useState<string>(ensureLetterhead(templates[0]?.content ?? blankTemplate));
   const [activeTemplate, setActiveTemplate] = useState<string>(templates[0]?.id ?? "");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,63 +143,22 @@ function App() {
   const paperRef = useRef<HTMLDivElement | null>(null);
   const exportRef = useRef<HTMLDivElement | null>(null);
 
-  const buildSuratTugasExportHtml = (body: string) => {
-    const hasWrapper = body.includes('class="surat-tugas"');
-    if (hasWrapper) {
-      return body.replace('<div class="surat-tugas">', `<div class="surat-tugas">${suratTugasHeader}`).replace(/<\/div>\s*$/, `${suratTugasFooter}</div>`);
-    }
-
-    return `<div class="surat-tugas">${suratTugasHeader}${body}${suratTugasFooter}</div>`;
+  const stripLetterheadSections = (html: string) => {
+    const withoutHeader = html.replace(/<header[^>]*class="[^"]*word-header[^"]*"[^>]*>[\s\S]*?<\/header>/i, "");
+    return withoutHeader.replace(/<footer[^>]*class="[^"]*word-footer[^"]*"[^>]*>[\s\S]*?<\/footer>/i, "");
   };
 
   const handleExportDocx = async () => {
+    const docxBody = stripLetterheadSections(ensureLetterhead(content));
     const payload = {
-      content,
+      content: docxBody,
       header: {
-        html: `
-          <div style="font-family:'Times New Roman', serif; color:#001f5f; text-align:center;">
-            <div style="display:flex; gap:6px; margin-bottom:8px;">
-              <span style="flex:1; height:6px; background:#c00000; border-radius:999px; display:block;"></span>
-              <span style="flex:1; height:6px; background:#ffc000; border-radius:999px; display:block;"></span>
-              <span style="flex:1; height:6px; background:#001f5f; border-radius:999px; display:block;"></span>
-            </div>
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
-              <img src="/assets/logo/logo-kiri.svg" style="width:110px; height:110px; object-fit:contain;" />
-              <div style="flex:1;">
-                <div style="font-weight:700; letter-spacing:0.5px;">YAYASAN SASMITA JAYA</div>
-                <div style="font-weight:700; font-size:22px; letter-spacing:1px;">UNIVERSITAS PAMULANG</div>
-                <div style="font-weight:700; font-size:14px; margin-top:4px;">LEMBAGA SERTIFIKASI PROFESI</div>
-                <div style="font-style:italic; font-weight:700; margin-top:2px;">“LEMBAGA SERTIFIKASI PROFESI”</div>
-              </div>
-              <img src="/assets/logo/logo-kanan.svg" style="width:130px; height:130px; object-fit:contain;" />
-            </div>
-            <div style="margin-top:8px;">
-              <div style="border-top:2px solid #001f5f; margin:2px auto; width:90%;"></div>
-              <div style="border-top:4px solid #001f5f; margin:2px auto; width:90%;"></div>
-            </div>
-          </div>
-        `,
+        html: letterheadDocxHeaderHtml,
         height: 120,
       },
       footer: {
-        html: `
-          <div style="font-family:'Times New Roman', serif; font-size:9pt; color:#1f385f; border-top:2px solid #001f5f; padding-top:6px;">
-            <div>
-              <div><strong>Kampus 1.</strong> Jl. Surya Kencana No.1, Pamulang, Kota Tangerang Selatan, Banten 15417</div>
-              <div><strong>Kampus 2.</strong> Jl. Raya Puspitek No.46, Serpong, Kota Tangerang Selatan, Banten 15316</div>
-              <div><strong>Kampus 3.</strong> Jl. Witana Harja No.18B, Pamulang, Kota Tangerang Selatan, Banten 15417</div>
-              <div><strong>Kampus 4.</strong> Jl. Raya Jakarta-Serang, Walantaka, Kota Serang, Banten 42183</div>
-            </div>
-            <div style="margin-top:4px; display:flex; flex-wrap:wrap; gap:8px;">
-              <span><strong>E.</strong> lsp@unpam.ac.id</span>
-              <span>|</span>
-              <span><strong>Web.</strong> www.lsp.unpam.ac.id</span>
-              <span>|</span>
-              <span><strong>IG.</strong> @lsp_unpam</span>
-            </div>
-          </div>
-        `,
-        height: 100,
+        html: letterheadDocxFooterHtml,
+        height: 110,
       },
       pageSize: "A4",
     };
@@ -308,12 +270,7 @@ function App() {
     [toolbar],
   );
 
-  const exportHtml = useMemo(() => {
-    if (activeTemplate === "surat-tugas") {
-      return buildSuratTugasExportHtml(content);
-    }
-    return content;
-  }, [activeTemplate, content]);
+  const exportHtml = useMemo(() => ensureLetterhead(content), [content]);
 
   useEffect(() => {
     let isMounted = true;
@@ -369,12 +326,12 @@ function App() {
     if (!selected) return;
 
     setActiveTemplate(templateId);
-    setContent(selected.content);
+    setContent(ensureLetterhead(selected.content));
   };
 
   const handleClear = () => {
     setActiveTemplate("");
-    setContent("");
+    setContent(blankTemplate);
   };
 
   return (
