@@ -1,11 +1,32 @@
 import htmlToDocx from "html-to-docx";
 
+const normalizeHtmlForDocx = (html: string) => {
+  // Remove common CKEditor artifacts that convert into whitespace-only paragraphs in DOCX.
+  let out = html ?? "";
+
+  // Non-breaking spaces become significant whitespace in Word.
+  out = out.replace(/\u00A0/g, " ");
+
+  // Remove empty paragraphs (including ones made from &nbsp; and <br>).
+  out = out.replace(/<p>(?:\s|&nbsp;|<br\s*\/?\s*>)*<\/p>/gi, "");
+
+  // Collapse multiple <br> into one.
+  out = out.replace(/(?:<br\s*\/?\s*>\s*){2,}/gi, "<br />");
+
+  // Remove empty inline wrappers.
+  out = out.replace(/<(strong|em|u|span|b|i)>(?:\s|&nbsp;)*<\/\1>/gi, "");
+
+  return out.trim();
+};
+
 /**
  * Converts HTML content to DOCX buffer
  * Used for both PDF and DOCX generation
  */
 export async function convertHtmlToDocx(html: string): Promise<Buffer> {
-  if (!html || html.trim() === "") {
+  const normalizedHtml = normalizeHtmlForDocx(html);
+
+  if (!normalizedHtml || normalizedHtml.trim() === "") {
     // Return minimal DOCX
     const emptyDocx = await htmlToDocx("<p></p>");
     return Buffer.from(emptyDocx);
@@ -32,7 +53,11 @@ export async function convertHtmlToDocx(html: string): Promise<Buffer> {
               margin: 0 0 6px 0;
               text-align: justify;
               line-height: 1.5;
-              text-indent: 0.5in;
+              text-indent: 0;
+            }
+
+            br {
+              line-height: 1.5;
             }
             
             p:first-child {
@@ -82,13 +107,13 @@ export async function convertHtmlToDocx(html: string): Promise<Buffer> {
             }
             
             ul {
-              margin: 0 0 6px 0.75in;
+              margin: 0 0 6px 0.5in;
               padding: 0;
               list-style-type: disc;
             }
             
             ol {
-              margin: 0 0 6px 0.75in;
+              margin: 0 0 6px 0.5in;
               padding: 0;
               list-style-type: decimal;
             }
@@ -107,7 +132,7 @@ export async function convertHtmlToDocx(html: string): Promise<Buffer> {
           </style>
         </head>
         <body>
-          ${html}
+          ${normalizedHtml}
         </body>
       </html>
     `;

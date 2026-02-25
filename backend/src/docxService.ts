@@ -79,6 +79,54 @@ const extractContentBodyXml = (contentXml: string) => {
   return bodyXml;
 };
 
+const stripHtmlToDocxWrapperParagraphs = (bodyXml: string) => {
+  // `html-to-docx` typically wraps content with a leading and trailing empty paragraph.
+  // These often become visible as awkward blank space when injected into a styled template.
+  // We'll remove only truly-empty paragraphs (no <w:t>) from start/end.
+  let xml = bodyXml.trim();
+
+  const isEmptyParagraph = (pXml: string) => {
+    // If the paragraph contains drawings/objects, keep it.
+    if (/<w:drawing[\s>]|<w:object[\s>]|<v:shape[\s>]/.test(pXml)) return false;
+
+    // If there is text, consider it empty only if it's whitespace-only.
+    // html-to-docx frequently emits: <w:t xml:space="preserve">       </w:t>
+    const textValues = [...pXml.matchAll(/<w:t(?:[^>]*)>([\s\S]*?)<\/w:t>/g)].map((m) => m[1] ?? "");
+    if (textValues.length > 0) {
+      const allWhitespace = textValues.every((t) => t.replace(/\s+/g, "") === "");
+      if (!allWhitespace) return false;
+    }
+
+    // No text or whitespace-only text => treat as empty.
+    return true;
+  };
+
+  const takeFirstParagraph = () => {
+    const m = xml.match(/^<w:p\b[\s\S]*?<\/w:p>/);
+    return m?.[0];
+  };
+
+  const takeLastParagraph = () => {
+    const m = xml.match(/<w:p\b[\s\S]*?<\/w:p>$/);
+    return m?.[0];
+  };
+
+  // Strip at most a few to avoid pathological regex behavior.
+  for (let i = 0; i < 5; i++) {
+    const first = takeFirstParagraph();
+    if (!first || !isEmptyParagraph(first)) break;
+    xml = xml.slice(first.length).trimStart();
+  }
+
+  for (let i = 0; i < 5; i++) {
+    const last = takeLastParagraph();
+    if (!last || !isEmptyParagraph(last)) break;
+    xml = xml.slice(0, -last.length).trimEnd();
+  }
+
+  return xml;
+};
+
 export async function generateSuratDocx(params: { templateId: string; fields: SuratFields; contentHtml: string }): Promise<Buffer> {
   // Read template
   const templatePath = getTemplatePath(params.templateId);
@@ -94,6 +142,7 @@ export async function generateSuratDocx(params: { templateId: string; fields: Su
   }
 
   const contentBodyXml = extractContentBodyXml(contentDocXml);
+  const cleanedContentBodyXml = stripHtmlToDocxWrapperParagraphs(contentBodyXml);
 
   // Load template
   const templateZip = new PizZip(templateBinary);
@@ -107,7 +156,7 @@ export async function generateSuratDocx(params: { templateId: string; fields: Su
   const normalizedFields = Object.fromEntries(Object.entries(params.fields).map(([key, value]) => [key, value ?? ""]));
   const renderedXml = replaceTemplateFields(templateDocXml, normalizedFields);
 
-  const finalXml = injectContentPlaceholder(renderedXml, contentBodyXml);
+  const finalXml = injectContentPlaceholder(renderedXml, cleanedContentBodyXml);
 
   // Generate final DOCX
   templateZip.file("word/document.xml", finalXml);
