@@ -94,31 +94,148 @@ function imageToBase64(filePath) {
   }
 }
 
-// Pre-convert logos/QR to base64 for embedding in PDF HTML
-const logoLeftBase64 = imageToBase64("assets/logo/LogoSasmita.png");
-const logoRightBase64 = imageToBase64("assets/logo/LogoUnpam.png");
-const qrBase64 = imageToBase64("assets/logo/qr-unpam.png");
+// Pre-convert default logos/QR to base64 for fallback
+const defaultLogoLeftBase64 = imageToBase64("assets/logo/LogoSasmita.png");
+const defaultLogoRightBase64 = imageToBase64("assets/logo/LogoUnpam.png");
+const defaultQrBase64 = imageToBase64("assets/logo/qr-unpam.png");
 
 /**
- * Build a COMPLETE HTML document that includes header, footer, and content.
- *
- * KEY APPROACH: Instead of using Puppeteer's `displayHeaderFooter` (which runs
- * in a sandboxed context with severe CSS limitations), we embed the header and
- * footer directly in the page using `position: fixed`. This makes the browser
- * itself render them identically to the preview, repeating on every printed page.
- *
- * - Header: position:fixed at top, z-index above content
- * - Footer: position:fixed at bottom, z-index above content
- * - Content: padded top/bottom to avoid overlap with fixed header/footer
- * - @page margins = 0, because we handle spacing ourselves
+ * Default values matching DEFAULT_UNIT_INFO in letterhead.ts
  */
-function buildFullHtmlDocument(bodyContent) {
+const DEFAULTS = {
+  unit: {
+    institutionLine: "YAYASAN SASMITA JAYA",
+    universityLine: "UNIVERSITAS PAMULANG",
+    unitName: "FAKULTAS TEKNIK",
+    subUnit: '"LEMBAGA SERTIFIKASI PROFESI"',
+    logoLeft: "/assets/logo/LogoSasmita.png",
+    logoRight: "/assets/logo/LogoUnpam.png",
+    email: "lsp@unpam.ac.id",
+    website: "www.lsp.unpam.ac.id",
+    instagram: "lsp_unpam",
+  },
+  meta: {
+    qrCodeUrl: "/assets/logo/qr-unpam.png",
+    qrLabel: "www.unpam.ac.id",
+  },
+  addresses: [
+    { label: "Kampus 1,", value: "Jl. Surya Kencana No.1, Pamulang, Kota Tangerang Selatan, Banten 15417" },
+    { label: "Kampus 2,", value: "Jl. Raya Puspitek No. 46, Serpong, Kota Tangerang Selatan, Banten 15316" },
+    { label: "Kampus 3,", value: "Jl. Witana Harja No. 18b, Pamulang, Kota Tangerang Selatan, Banten 15417" },
+    { label: "Kampus 4,", value: "Jl. Raya Jakarta-Serang, Walantaka, Kota Serang, Banten 42183" },
+  ],
+};
+
+/**
+ * Resolve an image src to a base64 data URI.
+ * If it's already data:, return as-is. If it's a local path, convert.
+ */
+function resolveImageSrc(src, fallbackBase64) {
+  if (!src) return fallbackBase64;
+  if (src.startsWith("data:")) return src;
+  const converted = imageToBase64(src.replace(/^\//, ""));
+  return converted || fallbackBase64;
+}
+
+/**
+ * Read suratTugas.css once at startup — this is the single source of truth
+ * for all header/footer/content styling. The PDF document reuses the exact
+ * same CSS classes as the CKEditor frontend.
+ */
+const suratTugasCssPath = path.join(__dirname, "..", "src", "templates", "suratTugas.css");
+const suratTugasCss = fs.existsSync(suratTugasCssPath) ? fs.readFileSync(suratTugasCssPath, "utf-8") : "";
+
+/**
+ * Build header HTML using the SAME structure as letterhead.ts buildLetterheadHeaderHtml.
+ * Images are resolved to base64 so Puppeteer doesn't need network access.
+ */
+function buildPdfHeaderHtml(unit) {
+  const logoLeftB64 = resolveImageSrc(unit.logoLeft, defaultLogoLeftBase64);
+  const logoRightB64 = resolveImageSrc(unit.logoRight, defaultLogoRightBase64);
+
+  return `
+  <header class="word-header">
+    <div class="word-header__grid">
+      <div class="word-logo word-logo--left">
+        <img class="word-logo__image" src="${logoLeftB64}" alt="Logo Kiri" />
+      </div>
+      <div class="word-identity">
+        <p class="word-identity__line word-identity__line--foundation">${unit.institutionLine}</p>
+        <p class="word-identity__line word-identity__line--institution">${unit.universityLine}</p>
+        <p class="word-identity__line word-identity__line--faculty">${unit.unitName}</p>
+        <p class="word-identity__line word-identity__line--subtitle">${unit.subUnit}</p>
+      </div>
+      <div class="word-logo word-logo--right">
+        <img class="word-logo__image" src="${logoRightB64}" alt="Logo Kanan" />
+      </div>
+    </div>
+    <div class="word-divider">
+      <span class="word-divider__line word-divider__line--thin"></span>
+      <span class="word-divider__line word-divider__line--thick"></span>
+    </div>
+  </header>`;
+}
+
+/**
+ * Build footer HTML using the SAME structure as letterhead.ts buildLetterheadFooterHtml.
+ */
+function buildPdfFooterHtml(unit, meta, addresses) {
+  const qrB64 = resolveImageSrc(meta.qrCodeUrl, defaultQrBase64);
+  const addressesHtml = addresses.map((addr) => `<p><strong>${addr.label}</strong> ${addr.value}</p>`).join("\n          ");
+  const contactLine = `<strong>E.</strong> ${unit.email}, | ${unit.website} | Instagram : ${unit.instagram}`;
+
+  return `
+  <footer class="word-footer">
+    <div class="word-footer__inner">
+      <div class="word-footer__content">
+        <div class="word-footer__addresses">
+          ${addressesHtml}
+        </div>
+        <div class="word-footer__contacts">
+          <p>${contactLine}</p>
+        </div>
+      </div>
+      <div class="word-footer__qr">
+        <img class="word-footer__qr-image" src="${qrB64}" alt="QR Code" />
+        <span class="word-footer__qr-label">${meta.qrLabel}</span>
+      </div>
+    </div>
+    <div class="word-footer__bar">
+      <span class="word-footer__bar-segment word-footer__bar-segment--red"></span>
+      <span class="word-footer__bar-segment word-footer__bar-segment--gold"></span>
+      <span class="word-footer__bar-segment word-footer__bar-segment--navy"></span>
+    </div>
+  </footer>`;
+}
+
+/**
+ * Build a COMPLETE HTML document reusing the SAME CSS classes and HTML structure
+ * as the CKEditor frontend (suratTugas.css + letterhead.ts).
+ *
+ * The only additions for PDF:
+ * - .word-header gets `position: fixed; top: 0` so it repeats on every page
+ * - .word-footer gets `position: fixed; bottom: 0` so it repeats on every page
+ * - Body content gets padding-top/bottom to avoid overlapping the fixed elements
+ */
+function buildFullHtmlDocument(bodyContent, letterCtx = {}) {
+  const unit = { ...DEFAULTS.unit, ...(letterCtx.unit || {}) };
+  const meta = { ...DEFAULTS.meta, ...(letterCtx.meta || {}) };
+  const addresses = letterCtx.addresses || DEFAULTS.addresses;
+
+  const headerHtml = buildPdfHeaderHtml(unit);
+  const footerHtml = buildPdfFooterHtml(unit, meta, addresses);
+
+  // Transform suratTugas.css for PDF context:
+  // Replace :where(.ck-content, .export-paper) with a generic selector
+  // so the same styles apply inside our PDF document body.
+  const pdfCss = suratTugasCss.replace(/:where\(\.ck-content,\s*\.export-paper\)/g, ".pdf-page");
+
   return `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
   <style>
-    /* ── Page setup ── */
+    /* ── Reset & page setup ── */
     @page {
       size: A4;
       margin: 0;
@@ -140,346 +257,82 @@ function buildFullHtmlDocument(bodyContent) {
       print-color-adjust: exact;
     }
 
+    /* ── Import the same CSS as the frontend ── */
+    ${pdfCss}
+
     /* ═══════════════════════════════════════
-       FIXED HEADER (repeats every page)
+       PDF OVERRIDES: make header/footer fixed
+       so they repeat on every printed page.
        ═══════════════════════════════════════ */
-    .pdf-header {
+    .pdf-page .word-header {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      height: 42mm;
-      padding: 6mm 15mm 0 15mm;
+      padding: var(--word-margin-top) var(--word-margin-x) 0;
       background: #fff;
       z-index: 100;
-      text-align: center;
-      color: #001f5f;
-      font-family: 'Times New Roman', serif;
-      text-transform: uppercase;
     }
 
-    .pdf-header__grid {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6mm;
-    }
-
-    .pdf-header__logo-left {
-      width: 4.23cm;
-      height: 2.99cm;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .pdf-header__logo-right {
-      width: 2.48cm;
-      height: 2.48cm;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .pdf-header__logo-left img,
-    .pdf-header__logo-right img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    .pdf-header__identity {
-      flex: 1;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5mm;
-      line-height: 1.05;
-    }
-
-    .pdf-header__line1 {
-      font-size: 12pt;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-    }
-    .pdf-header__line2 {
-      font-size: 20pt;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-    }
-    .pdf-header__line3 {
-      font-size: 18pt;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-    }
-    .pdf-header__subtitle {
-      font-size: 12pt;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      line-height: 1.1;
-    }
-
-    .pdf-header__divider {
-      display: flex;
-      flex-direction: column;
-      gap: 1mm;
-      margin-top: 3mm;
-    }
-    .pdf-header__divider-thin {
-      height: 1px;
-      background: #001f5f;
-      opacity: 0.95;
-    }
-    .pdf-header__divider-thick {
-      height: 3px;
-      background: #001f5f;
-    }
-
-    /* ═══════════════════════════════════════
-       FIXED FOOTER (repeats every page)
-       ═══════════════════════════════════════ */
-    .pdf-footer {
+    .pdf-page .word-footer {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      height: 36mm;
-      padding: 0 15mm 6mm 15mm;
+      padding: 0 var(--word-margin-x) var(--word-margin-bottom);
       background: #fff;
       z-index: 100;
-      font-family: 'Times New Roman', serif;
-      font-size: 10pt;
-      color: #4b5563;
+      margin-top: 0;
     }
 
-    .pdf-footer__border {
-      border-top: 2px solid #001f5f;
-      padding-top: 3mm;
+    /* Remove the paper border/shadow/radius for PDF (it's a real page) */
+    .pdf-page .surat-tugas {
+      border: none;
+      box-shadow: none;
+      border-radius: 0;
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      min-height: auto;
     }
 
-    .pdf-footer__inner {
-      display: flex;
-      align-items: flex-start;
-      gap: 5mm;
-    }
-
-    .pdf-footer__content {
-      flex: 1;
-    }
-
-    .pdf-footer__addresses {
-      line-height: 1.3;
-    }
-    .pdf-footer__addresses p {
-      margin: 1px 0;
-      font-size: 10pt;
-    }
-
-    .pdf-footer__contacts {
-      margin-top: 2px;
-      color: #001f5f;
-      font-weight: 600;
-      font-size: 10pt;
-    }
-
-    .pdf-footer__qr {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1px;
-      flex-shrink: 0;
-    }
-    .pdf-footer__qr img {
-      width: 1.8cm;
-      height: 1.8cm;
-      object-fit: contain;
-    }
-    .pdf-footer__qr-label {
-      font-size: 8pt;
-      color: #001f5f;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .pdf-footer__bar {
-      display: flex;
-      height: 6px;
-      overflow: hidden;
-      margin-top: 4px;
-    }
-    .pdf-footer__bar span { flex: 1; }
-    .pdf-footer__bar-red  { background: #c00000; }
-    .pdf-footer__bar-gold { background: #ffc000; }
-    .pdf-footer__bar-navy { background: #001f5f; }
-
-    /* ═══════════════════════════════════════
-       CONTENT AREA
-       ═══════════════════════════════════════ */
-    .pdf-content {
-      /* Push below fixed header and above fixed footer */
-      padding-top: 44mm;
-      padding-bottom: 38mm;
-      padding-left: 15mm;
-      padding-right: 15mm;
+    /* Content area: pushed down past fixed header, up from fixed footer */
+    .pdf-page .surat-word {
+      padding-top: calc(var(--word-header-height) + 2mm);
+      padding-bottom: calc(var(--word-footer-height) + 2mm);
+      padding-left: var(--word-margin-x);
+      padding-right: var(--word-margin-x);
       min-height: 297mm;
     }
 
-    /* ── Surat content styling (matches suratTugas.css) ── */
-    .pdf-content p,
-    .pdf-content li {
-      margin: 0 0 6pt;
-    }
-
-    .word-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      margin-top: 4px;
-    }
-    .word-meta p {
-      display: flex;
-      gap: 8px;
-    }
-    .word-meta span {
-      font-weight: 700;
-      min-width: 120px;
-    }
-
-    .word-address {
-      margin-top: 10px;
-    }
-    .word-address p {
+    /* Word-body doesn't need min-height in PDF (surat-word handles it) */
+    .pdf-page .word-body {
+      min-height: auto;
       margin: 0;
-    }
-
-    .word-detail {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 8px 0 6px;
-      font-size: 12pt;
-    }
-    .word-detail td {
-      padding: 4px 8px;
-      border: 1px solid #d6dae2;
-      vertical-align: top;
-      line-height: 1.15;
-    }
-    .word-detail td:first-child {
-      width: 150px;
-      font-weight: 600;
-      background: #f2f4f8;
-    }
-
-    ul {
-      margin: 0 0 0 18px;
-      padding: 0;
-    }
-
-    .word-signature {
-      text-align: left;
-      margin-top: 16px;
-      margin-left: auto;
-    }
-    .word-signature p {
-      margin: 0 0 4px;
-    }
-    .word-signature__space {
-      height: 72px;
-    }
-    .word-signature__name {
-      text-decoration: underline;
-    }
-
-    table {
-      border-collapse: collapse;
-    }
-    table td, table th {
-      padding: 4px 8px;
-      border: 1px solid #d6dae2;
-      vertical-align: top;
-    }
-
-    /* CKEditor content compat */
-    figure.table {
-      margin: 0.9em auto;
-      display: table;
-    }
-    .table table {
-      border-collapse: collapse;
-      width: 100%;
     }
   </style>
 </head>
 <body>
-
-  <!-- Fixed header: repeats on every printed page -->
-  <div class="pdf-header">
-    <div class="pdf-header__grid">
-      <div class="pdf-header__logo-left">
-        <img src="${logoLeftBase64}" alt="Logo Sasmita Jaya" />
-      </div>
-      <div class="pdf-header__identity">
-        <div class="pdf-header__line1">YAYASAN SASMITA JAYA</div>
-        <div class="pdf-header__line2">UNIVERSITAS PAMULANG</div>
-        <div class="pdf-header__line3">FAKULTAS TEKNIK</div>
-        <div class="pdf-header__subtitle">"LEMBAGA SERTIFIKASI PROFESI"</div>
-      </div>
-      <div class="pdf-header__logo-right">
-        <img src="${logoRightBase64}" alt="Logo Unpam" />
-      </div>
-    </div>
-    <div class="pdf-header__divider">
-      <div class="pdf-header__divider-thin"></div>
-      <div class="pdf-header__divider-thick"></div>
-    </div>
-  </div>
-
-  <!-- Fixed footer: repeats on every printed page -->
-  <div class="pdf-footer">
-    <div class="pdf-footer__border">
-      <div class="pdf-footer__inner">
-        <div class="pdf-footer__content">
-          <div class="pdf-footer__addresses">
-            <p><strong>Kampus 1,</strong> Jl. Surya Kencana No.1, Pamulang, Kota Tangerang Selatan, Banten 15417</p>
-            <p><strong>Kampus 2,</strong> Jl. Raya Puspitek No. 46, Serpong, Kota Tangerang Selatan, Banten 15316</p>
-            <p><strong>Kampus 3,</strong> Jl. Witana Harja No. 18b, Pamulang, Kota Tangerang Selatan, Banten 15417</p>
-            <p><strong>Kampus 4,</strong> Jl. Raya Jakarta-Serang, Walantaka, Kota Serang, Banten 42183</p>
-          </div>
-          <div class="pdf-footer__contacts">
-            <strong>E.</strong> lsp@unpam.ac.id, | www.lsp.unpam.ac.id | Instagram : lsp_unpam
-          </div>
-        </div>
-        <div class="pdf-footer__qr">
-          <img src="${qrBase64}" alt="QR Code unpam.ac.id" />
-          <span class="pdf-footer__qr-label">www.unpam.ac.id</span>
-        </div>
-      </div>
-      <div class="pdf-footer__bar">
-        <span class="pdf-footer__bar-red"></span>
-        <span class="pdf-footer__bar-gold"></span>
-        <span class="pdf-footer__bar-navy"></span>
+  <div class="pdf-page">
+    ${headerHtml}
+    ${footerHtml}
+    <div class="surat-word">
+      <div class="word-body">
+        ${bodyContent}
       </div>
     </div>
   </div>
-
-  <!-- Page content (flows between fixed header/footer) -->
-  <div class="pdf-content">
-    ${bodyContent}
-  </div>
-
 </body>
 </html>`;
 }
 
 /**
  * POST /api/export-pdf
- * Body: { content: string (HTML body from CKEditor) }
+ * Body: { content: string, letterCtx?: { unit, meta, addresses } }
  * Returns: PDF file as binary
  */
 app.post("/api/export-pdf", async (req, res) => {
-  const { content } = req.body;
+  const { content, letterCtx } = req.body;
 
   if (!content) {
     return res.status(400).json({ error: "content is required" });
@@ -503,7 +356,7 @@ app.post("/api/export-pdf", async (req, res) => {
 
     const page = await browser.newPage();
 
-    const htmlDocument = buildFullHtmlDocument(content);
+    const htmlDocument = buildFullHtmlDocument(content, letterCtx);
 
     await page.setContent(htmlDocument, {
       waitUntil: "networkidle0",

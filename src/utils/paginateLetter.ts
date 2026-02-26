@@ -1,4 +1,5 @@
 import { wrapWithLetterhead } from "../templates/letterhead";
+import type { LetterContext } from "../types/letter";
 
 const MM_PER_INCH = 25.4;
 const DPI = 96;
@@ -51,10 +52,10 @@ export type PaginatedLetterResult = {
   bodySegments: string[];
 };
 
-export const paginateLetterPages = (bodyHtml: string): PaginatedLetterResult => {
+export const paginateLetterPages = (bodyHtml: string, ctx?: Partial<LetterContext>): PaginatedLetterResult => {
   if (typeof document === "undefined") {
     return {
-      wrappedPages: [wrapWithLetterhead(bodyHtml)],
+      wrappedPages: [wrapWithLetterhead(bodyHtml, ctx)],
       bodySegments: [bodyHtml],
     };
   }
@@ -76,7 +77,7 @@ export const paginateLetterPages = (bodyHtml: string): PaginatedLetterResult => 
   const flushPage = () => {
     const combined = currentParts.join("").trim() || "<p><br /></p>";
     bodySegments.push(combined);
-    wrappedPages.push(wrapWithLetterhead(combined));
+    wrappedPages.push(wrapWithLetterhead(combined, ctx));
     currentParts = [];
     measurementBody.innerHTML = "";
   };

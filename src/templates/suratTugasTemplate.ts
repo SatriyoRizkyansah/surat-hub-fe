@@ -1,4 +1,7 @@
-import { letterheadFooterHtml, letterheadHeaderHtml, wrapWithLetterhead } from "./letterhead";
+import { letterheadFooterHtml, letterheadHeaderHtml } from "./letterhead";
+
+// Templates store RAW body content only.
+// The editor wraps them with letterhead dynamically using the current LetterContext.
 
 export const suratTugasHeader = letterheadHeaderHtml;
 
@@ -61,6 +64,6 @@ const suratTugasContent = `
   </div>
 `;
 
-export const suratTugasBody = wrapWithLetterhead(suratTugasContent);
+export const suratTugasBody = suratTugasContent;
 
 export const suratTugasFooter = letterheadFooterHtml;

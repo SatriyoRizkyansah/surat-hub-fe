@@ -32,9 +32,11 @@ import {
 import "ckeditor5/ckeditor5.css";
 import "./App.css";
 import "./templates/suratTugas.css";
-import { letterheadDocxFooterHtml, letterheadDocxHeaderHtml, wrapWithLetterhead } from "./templates/letterhead";
+import { wrapWithLetterhead, buildDocxHeaderHtml, buildDocxFooterHtml } from "./templates/letterhead";
 import { suratTugasBody } from "./templates/suratTugasTemplate";
 import { paginateLetterPages } from "./utils/paginateLetter";
+import { LetterProvider } from "./context/LetterContext";
+import { useLetterContext } from "./context/useLetterContext";
 
 type Template = {
   id: string;
@@ -77,7 +79,7 @@ const templates: Template[] = [
   {
     id: "undangan-rapat",
     name: "Undangan Rapat",
-    content: wrapWithLetterhead(`
+    content: `
       <p><strong>Nomor</strong>: 01/UND/II/2026</p>
       <p><strong>Perihal</strong>: Undangan Rapat Koordinasi</p>
       <p><br /></p>
@@ -99,12 +101,12 @@ const templates: Template[] = [
       <p><strong>Manajer Operasional</strong></p>
       <p><br /><br /></p>
       <p>______________________</p>
-    `),
+    `,
   },
   {
     id: "surat-pemberitahuan",
     name: "Pemberitahuan Internal",
-    content: wrapWithLetterhead(`
+    content: `
       <p><strong>Nomor</strong>: 05/PBT/II/2026</p>
       <p><strong>Perihal</strong>: Pemberitahuan Pemeliharaan Sistem</p>
       <p><br /></p>
@@ -127,11 +129,11 @@ const templates: Template[] = [
       <p><strong>Divisi IT</strong></p>
       <p><br /><br /></p>
       <p>______________________</p>
-    `),
+    `,
   },
 ];
 
-const blankTemplate = wrapWithLetterhead("<p><br /></p>");
+const blankBody = "<p><br /></p>";
 
 const MM_PER_INCH = 25.4;
 const DPI = 96;
@@ -230,9 +232,10 @@ const extractWordBodyHtml = (html: string) => {
   }
 };
 
-const initialBody = extractWordBodyHtml(templates[0]?.content ?? blankTemplate);
+const initialBody = extractWordBodyHtml(templates[0]?.content ?? blankBody);
 
-function App() {
+function AppInner() {
+  const { letterCtx } = useLetterContext();
   const [bodyHtml, setBodyHtml] = useState<string>(initialBody);
   const [activeTemplate, setActiveTemplate] = useState<string>(templates[0]?.id ?? "");
   const [loading, setLoading] = useState(true);
@@ -243,9 +246,13 @@ function App() {
   const exportRef = useRef<HTMLDivElement | null>(null);
   const bodyHtmlRef = useRef(bodyHtml);
   const externalUpdateRef = useRef(false);
-  const { wrappedPages, bodySegments } = useMemo(() => paginateLetterPages(bodyHtml), [bodyHtml]);
+  const letterCtxRef = useRef(letterCtx);
+  letterCtxRef.current = letterCtx;
+  const { wrappedPages, bodySegments } = useMemo(() => paginateLetterPages(bodyHtml, letterCtx), [bodyHtml, letterCtx]);
 
   const handleExportDocx = async () => {
+    const docxHeader = buildDocxHeaderHtml(letterCtx.unit);
+    const docxFooter = buildDocxFooterHtml(letterCtx.unit, letterCtx.meta, letterCtx.addresses);
     const pageSegments = bodySegments.length > 0 ? bodySegments : [bodyHtml];
     const paginatedHtml = pageSegments
       .map((segment, index) => {
@@ -254,11 +261,11 @@ function App() {
         return `
           <div class="surat-docx-page" style="${pageBreakStyle}">
             <div style="padding:0 0 12mm; font-family:'Times New Roman', serif; font-size:12pt; color:#1f2a37;">
-              ${letterheadDocxHeaderHtml}
+              ${docxHeader}
               <div style="padding:0 15mm; min-height:120mm; line-height:1.4;">
                 ${segment}
               </div>
-              ${letterheadDocxFooterHtml}
+              ${docxFooter}
             </div>
           </div>
         `;
@@ -292,7 +299,7 @@ function App() {
   };
 
   const handleExportPdf = async () => {
-    // Send body HTML to Puppeteer backend for proper paginated PDF
+    // Send body HTML + letter context to Puppeteer backend for proper paginated PDF
     const content = bodyHtml;
     if (!content || content.trim() === "<p><br /></p>") {
       alert("Isi surat masih kosong.");
@@ -303,7 +310,7 @@ function App() {
       const res = await fetch("/api/export-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, letterCtx }),
       });
 
       if (!res.ok) {
@@ -385,6 +392,7 @@ function App() {
             name: /.*?/,
             classes: true,
             styles: true,
+            attributes: true,
           },
         ],
       },
@@ -404,7 +412,7 @@ function App() {
 
         if (!isMounted) return;
 
-        editor.setData(wrapWithLetterhead(bodyHtmlRef.current));
+        editor.setData(wrapWithLetterhead(bodyHtmlRef.current, letterCtxRef.current));
         editor.model.document.on("change:data", () => {
           const data = editor.getData();
           const normalizedBody = extractWordBodyHtml(data);
@@ -445,12 +453,12 @@ function App() {
     externalUpdateRef.current = false;
     const instance = editorInstanceRef.current;
     if (!instance) return;
-    const target = wrapWithLetterhead(bodyHtml);
+    const target = wrapWithLetterhead(bodyHtml, letterCtx);
     const current = instance.getData();
     if (current.trim() !== target.trim()) {
       instance.setData(target);
     }
-  }, [bodyHtml]);
+  }, [bodyHtml, letterCtx]);
 
   const handleTemplateSelect = (templateId: string) => {
     const selected = templates.find((tpl) => tpl.id === templateId);
@@ -488,7 +496,8 @@ function App() {
             onClick={() => {
               console.log("Dummy POST payload", {
                 template: activeTemplate,
-                content: wrapWithLetterhead(bodyHtml),
+                content: wrapWithLetterhead(bodyHtml, letterCtx),
+                letterCtx,
               });
               alert("Simulasi kirim ke backend (cek console untuk payload)");
             }}
@@ -562,6 +571,15 @@ function App() {
         </div>
       </section>
     </div>
+  );
+}
+
+/** Wrap AppInner with LetterProvider so all children can access/modify letter context */
+function App() {
+  return (
+    <LetterProvider>
+      <AppInner />
+    </LetterProvider>
   );
 }
 

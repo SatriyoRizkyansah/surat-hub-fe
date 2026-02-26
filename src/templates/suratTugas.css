@@ -30,7 +30,6 @@
 :where(.ck-content, .export-paper) .surat-tugas {
   width: var(--word-page-width);
   margin: 0 auto;
-  min-height: var(--word-page-height);
   background: #fff;
   border: 0.4mm solid #d9dfe9;
   border-radius: 6px;
@@ -40,6 +39,12 @@
   padding: var(--word-margin-top) var(--word-margin-x) var(--word-margin-bottom);
   box-sizing: border-box;
   position: relative;
+}
+
+/* Only force full A4 page height in export/preview, not in the live editor */
+.export-paper .surat-tugas,
+.preview-page__inner .surat-tugas {
+  min-height: var(--word-page-height);
 }
 
 :where(.ck-content, .export-paper) .surat-word {
@@ -168,6 +173,11 @@
   gap: 8px;
   flex: 1;
   margin: 6mm 0 10mm;
+}
+
+/* Only force full-page height in export/preview context, not in the editor */
+.export-paper .word-body,
+.preview-page__inner .word-body {
   min-height: calc(var(--word-page-height) - var(--word-header-height) - var(--word-footer-height));
 }
 
@@ -238,10 +248,11 @@
 :where(.ck-content, .export-paper) .word-footer {
   margin-top: auto;
   padding-top: 4mm;
-  border-top: 2px solid var(--word-navy);
   font-size: 10pt;
   color: var(--word-muted);
   font-family: "Times New Roman", serif;
+  border: none !important;
+  border-top: none !important;
 }
 
 :where(.ck-content, .export-paper) .word-footer__inner {
