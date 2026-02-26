@@ -2,14 +2,20 @@ const logos = {
   left: {
     src: "/assets/logo/LogoSasmita.png",
     alt: "Logo Yayasan Sasmita Jaya",
-    width: "3.5cm",
-    height: "2.5cm",
+    width: "4.23cm",
+    height: "2.99cm",
   },
   right: {
     src: "/assets/logo/LogoUnpam.png",
     alt: "Logo Universitas Pamulang",
-    width: "2.2cm",
-    height: "2.2cm",
+    width: "2.48cm",
+    height: "2.48cm",
+  },
+  qr: {
+    src: "/assets/logo/qr-unpam.png",
+    alt: "QR Code unpam.ac.id",
+    width: "1.8cm",
+    height: "1.8cm",
   },
 };
 
@@ -17,38 +23,30 @@ const brand = {
   line1: "YAYASAN SASMITA JAYA",
   line2: "UNIVERSITAS PAMULANG",
   line3: "FAKULTAS TEKNIK",
-  subtitle: '"LEMBAGA PENGEMBANGAN TEKNOLOGI INFORMASI"',
+  subtitle: '"LEMBAGA SERTIFIKASI PROFESI"',
 };
 
 const addresses = [
-  { label: "Kampus 1.", value: "Jl. Surya Kencana No.1, Pamulang, Kota Tangerang Selatan, Banten 15417" },
-  { label: "Kampus 2.", value: "Jl. Raya Puspitek No.46, Serpong, Kota Tangerang Selatan, Banten 15316" },
-  { label: "Kampus 3.", value: "Jl. Witana Harja No.18B, Pamulang, Kota Tangerang Selatan, Banten 15417" },
-  { label: "Kampus 4.", value: "Jl. Raya Jakarta-Serang, Walantaka, Kota Serang, Banten 42183" },
+  { label: "Kampus 1,", value: "Jl. Surya Kencana No.1, Pamulang, Kota Tangerang Selatan, Banten 15417" },
+  { label: "Kampus 2,", value: "Jl. Raya Puspitek No. 46, Serpong, Kota Tangerang Selatan, Banten 15316" },
+  { label: "Kampus 3,", value: "Jl. Witana Harja No. 18b, Pamulang, Kota Tangerang Selatan, Banten 15417" },
+  { label: "Kampus 4,", value: "Jl. Raya Jakarta-Serang, Walantaka, Kota Serang, Banten 42183" },
 ];
 
 const contacts = [
-  { label: "E.", value: "lsp@unpam.ac.id" },
-  { label: "Web.", value: "www.lsp.unpam.ac.id" },
-  { label: "IG.", value: "@lsp_unpam" },
+  { label: "E.", value: "lsp@unpam.ac.id," },
+  { label: "|", value: "www.lsp.unpam.ac.id" },
+  { label: "| Instagram :", value: "lsp_unpam" },
 ];
 
 const renderAddresses = (tag: "p" | "div") => addresses.map((addr) => `<${tag}><strong>${addr.label}</strong> ${addr.value}</${tag}>`).join("\n");
 
 const renderContacts = (tag: "p" | "div") => {
+  const contactLine = `<strong>${contacts[0].label}</strong> ${contacts[0].value} ${contacts[1].label} ${contacts[1].value} ${contacts[2].label} ${contacts[2].value}`;
   if (tag === "p") {
-    return `<p><strong>${contacts[0].label}</strong> ${contacts[0].value} &nbsp;|&nbsp; <strong>${contacts[1].label}</strong> ${contacts[1].value} &nbsp;|&nbsp; <strong>${contacts[2].label}</strong> ${contacts[2].value}</p>`;
+    return `<p>${contactLine}</p>`;
   }
-
-  return `
-    <div style="margin-top:4px; color:#001f5f; font-weight:600;">
-      <span><strong>${contacts[0].label}</strong> ${contacts[0].value}</span>
-      <span style="margin:0 6px;">|</span>
-      <span><strong>${contacts[1].label}</strong> ${contacts[1].value}</span>
-      <span style="margin:0 6px;">|</span>
-      <span><strong>${contacts[2].label}</strong> ${contacts[2].value}</span>
-    </div>
-  `;
+  return `<div style="margin-top:4px; color:#001f5f; font-weight:600;">${contactLine}</div>`;
 };
 
 export const letterheadHeaderHtml = `
@@ -68,8 +66,8 @@ export const letterheadHeaderHtml = `
       </div>
     </div>
     <div class="word-divider">
-    <span class="word-divider__line word-divider__line--thin"></span>
-    <span class="word-divider__line word-divider__line--thick"></span>
+      <span class="word-divider__line word-divider__line--thin"></span>
+      <span class="word-divider__line word-divider__line--thick"></span>
     </div>
   </header>
 `;
@@ -77,17 +75,23 @@ export const letterheadHeaderHtml = `
 export const letterheadFooterHtml = `
   <footer class="word-footer" data-running="word-footer" contenteditable="false" data-letterhead-lock="footer">
     <div class="word-footer__inner">
-      <div class="word-footer__addresses">
-        ${renderAddresses("p")}
+      <div class="word-footer__content">
+        <div class="word-footer__addresses">
+          ${renderAddresses("p")}
+        </div>
+        <div class="word-footer__contacts">
+          ${renderContacts("p")}
+        </div>
       </div>
-      <div class="word-footer__contacts">
-        ${renderContacts("p")}
+      <div class="word-footer__qr">
+        <img class="word-footer__qr-image" src="${logos.qr.src}" alt="${logos.qr.alt}" />
+        <span class="word-footer__qr-label">www.unpam.ac.id</span>
       </div>
     </div>
     <div class="word-footer__bar">
-      <span class="word-footer__bar-segment word-footer__bar-segment--navy"></span>
-      <span class="word-footer__bar-segment word-footer__bar-segment--gold"></span>
       <span class="word-footer__bar-segment word-footer__bar-segment--red"></span>
+      <span class="word-footer__bar-segment word-footer__bar-segment--gold"></span>
+      <span class="word-footer__bar-segment word-footer__bar-segment--navy"></span>
     </div>
   </footer>
 `;
@@ -132,30 +136,37 @@ export const letterheadDocxHeaderHtml = `
         <div style="font-size:12pt; font-weight:700; letter-spacing:0.04em;">${brand.line1}</div>
         <div style="font-size:20pt; font-weight:700; letter-spacing:0.06em; margin:1px 0 2px;">${brand.line2}</div>
         <div style="font-size:18pt; font-weight:700; letter-spacing:0.05em; margin-bottom:2px;">${brand.line3}</div>
-        <div style="font-size:11pt; font-weight:700; letter-spacing:0.04em; font-style:italic; line-height:1.1;">${brand.subtitle}</div>
+        <div style="font-size:12pt; font-weight:700; letter-spacing:0.04em; line-height:1.1;">${brand.subtitle}</div>
       </div>
       <div style="width:${logos.right.width}; height:${logos.right.height}; display:flex; align-items:center; justify-content:center;">
         <img src="${logos.right.src}" style="width:100%; height:100%; object-fit:contain;" alt="${logos.right.alt}" />
       </div>
     </div>
     <div style="margin-top:4mm;">
-      <div style="height:3px; background:#001f5f; border-radius:2px;"></div>
-      <div style="height:1px; background:#001f5f; margin-top:1.2mm; border-radius:2px;"></div>
-      <div style="height:1px; background:#001f5f; margin-top:0.8mm; border-radius:2px;"></div>
+      <div style="height:1px; background:#001f5f; opacity:0.95;"></div>
+      <div style="height:3px; background:#001f5f; margin-top:1mm; border-radius:1px;"></div>
     </div>
   </div>
 `;
 
 export const letterheadDocxFooterHtml = `
-  <div style="font-family:'Times New Roman', serif; font-size:9pt; color:#1f385f; border-top:2px solid #001f5f; padding:8mm 15mm 0;">
-    <div>
-      ${renderAddresses("div")}
+  <div style="font-family:'Times New Roman', serif; font-size:10pt; color:#1f385f; border-top:2px solid #001f5f; padding:6mm 15mm 0;">
+    <div style="display:flex; align-items:flex-start; gap:8mm;">
+      <div style="flex:1;">
+        <div style="line-height:1.35;">
+          ${renderAddresses("div")}
+        </div>
+        ${renderContacts("div")}
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0;">
+        <img src="${logos.qr.src}" style="width:${logos.qr.width}; height:${logos.qr.height}; object-fit:contain;" alt="${logos.qr.alt}" />
+        <div style="font-size:8pt; color:#001f5f; font-weight:600;">www.unpam.ac.id</div>
+      </div>
     </div>
-    ${renderContacts("div")}
-    <div style="display:flex; height:6px; border-radius:999px; overflow:hidden; margin-top:8px;">
-      <span style="flex:1; background:#001f5f;"></span>
-      <span style="flex:1; background:#ffc000;"></span>
+    <div style="display:flex; height:6px; overflow:hidden; margin-top:6px;">
       <span style="flex:1; background:#c00000;"></span>
+      <span style="flex:1; background:#ffc000;"></span>
+      <span style="flex:1; background:#001f5f;"></span>
     </div>
   </div>
 `;

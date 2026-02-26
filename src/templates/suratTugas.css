@@ -8,18 +8,18 @@
   --word-page-width: 210mm;
   --word-page-height: 297mm;
   --word-header-height: 62mm;
-  --word-footer-height: 34mm;
+  --word-footer-height: 38mm;
   --word-margin-top: 8mm;
-  --word-margin-bottom: 12mm;
+  --word-margin-bottom: 8mm;
   --word-margin-x: 15mm;
   --word-header-gap: 8mm;
-  --word-logo-left-width: 3.5cm;
-  --word-logo-left-height: 2.5cm;
-  --word-logo-right-width: 2.2cm;
-  --word-logo-right-height: 2.2cm;
-  --word-divider-gap: 0.8mm;
-  --word-divider-thick: 3.2px;
-  --word-divider-thin: 1.2px;
+  --word-logo-left-width: 4.23cm;
+  --word-logo-left-height: 2.99cm;
+  --word-logo-right-width: 2.48cm;
+  --word-logo-right-height: 2.48cm;
+  --word-divider-gap: 1mm;
+  --word-divider-thick: 3px;
+  --word-divider-thin: 1px;
 }
 
 @page {
@@ -133,10 +133,9 @@
 }
 
 :where(.ck-content, .export-paper) .word-identity__line--subtitle {
-  font-size: 11pt;
+  font-size: 12pt;
   letter-spacing: 0.04em;
   margin-top: 0;
-  font-style: italic;
   line-height: 1.1;
 }
 
@@ -238,35 +237,65 @@
 
 :where(.ck-content, .export-paper) .word-footer {
   margin-top: auto;
-  padding-top: 6mm;
+  padding-top: 4mm;
   border-top: 2px solid var(--word-navy);
   font-size: 10pt;
   color: var(--word-muted);
+  font-family: "Times New Roman", serif;
 }
 
 :where(.ck-content, .export-paper) .word-footer__inner {
   display: flex;
+  align-items: flex-start;
+  gap: 6mm;
+}
+
+:where(.ck-content, .export-paper) .word-footer__content {
+  flex: 1;
+  display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 :where(.ck-content, .export-paper) .word-footer__addresses p,
 :where(.ck-content, .export-paper) .word-footer__contacts p {
-  margin: 2px 0;
+  margin: 1px 0;
+  font-size: 10pt;
+  line-height: 1.3;
 }
 
 :where(.ck-content, .export-paper) .word-footer__contacts {
-  margin-top: 4px;
+  margin-top: 2px;
   color: var(--word-navy);
   font-weight: 600;
 }
 
+:where(.ck-content, .export-paper) .word-footer__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+:where(.ck-content, .export-paper) .word-footer__qr-image {
+  width: 1.8cm;
+  height: 1.8cm;
+  object-fit: contain;
+}
+
+:where(.ck-content, .export-paper) .word-footer__qr-label {
+  font-size: 8pt;
+  color: var(--word-navy);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 :where(.ck-content, .export-paper) .word-footer__bar {
   display: flex;
-  gap: 4px;
-  margin-top: 8px;
+  gap: 0;
+  margin-top: 6px;
   height: 6px;
-  border-radius: 999px;
   overflow: hidden;
 }
 

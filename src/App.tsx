@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // @ts-nocheck
 import { useEffect, useMemo, useRef, useState } from "react";
-import html2pdf from "html2pdf.js";
 import {
   Alignment,
   BlockQuote,
@@ -293,21 +292,35 @@ function App() {
   };
 
   const handleExportPdf = async () => {
-    const element = exportRef.current;
-    if (!element) return;
+    // Send body HTML to Puppeteer backend for proper paginated PDF
+    const content = bodyHtml;
+    if (!content || content.trim() === "<p><br /></p>") {
+      alert("Isi surat masih kosong.");
+      return;
+    }
 
-    await inlineImagesInElement(element);
+    try {
+      const res = await fetch("/api/export-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
 
-    html2pdf()
-      .from(element)
-      .set({
-        margin: 0,
-        filename: "surat-tugas.pdf",
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      })
-      .save();
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Status ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "surat.pdf";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      console.error("Gagal export PDF via backend", err);
+      alert("Export PDF gagal. Pastikan server PDF berjalan (npm run server).");
+    }
   };
 
   const toolbar = useMemo(
@@ -464,7 +477,7 @@ function App() {
         </div>
         <div className="header-actions">
           <button className="ghost" type="button" onClick={handleExportPdf}>
-            Export PDF (frontend)
+            Export PDF
           </button>
           <button className="ghost" type="button" onClick={handleExportDocx}>
             Export DOCX (with header/footer)
