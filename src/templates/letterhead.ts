@@ -50,12 +50,6 @@ export const DEFAULT_LETTER_META: LetterMeta = {
   templateId: "surat-tugas",
 };
 
-export const DEFAULT_LETTER_CONTEXT: LetterContext = {
-  unit: DEFAULT_UNIT_INFO,
-  meta: DEFAULT_LETTER_META,
-  addresses: DEFAULT_ADDRESSES,
-};
-
 // ─── Helper renderers ───
 
 const renderAddresses = (tag: "p" | "div", addresses: CampusAddress[] = DEFAULT_ADDRESSES) => addresses.map((addr) => `<${tag}><strong>${addr.label}</strong> ${addr.value}</${tag}>`).join("\n");
@@ -117,11 +111,6 @@ export const buildLetterheadFooterHtml = (unit: UnitInfo = DEFAULT_UNIT_INFO, me
   </footer>
 `;
 
-// ─── Backward-compatible static exports (use defaults) ───
-
-export const letterheadHeaderHtml = buildLetterheadHeaderHtml();
-export const letterheadFooterHtml = buildLetterheadFooterHtml();
-
 // ─── Wrapper function ───
 
 export const wrapWithLetterhead = (bodyHtml: string, ctx?: Partial<LetterContext>) => {
@@ -142,26 +131,6 @@ export const wrapWithLetterhead = (bodyHtml: string, ctx?: Partial<LetterContext
       ${footer}
     </div>
   `;
-};
-
-export const ensureLetterhead = (html: string, ctx?: Partial<LetterContext>) => {
-  const hasHeader = html.includes("word-header");
-  const hasFooter = html.includes("word-footer");
-
-  if (hasHeader && hasFooter) {
-    return html;
-  }
-
-  const header = buildLetterheadHeaderHtml(ctx?.unit);
-  const footer = buildLetterheadFooterHtml(ctx?.unit, ctx?.meta, ctx?.addresses);
-
-  if (html.includes('class="surat-tugas"')) {
-    const withHeader = hasHeader ? html : html.replace('<div class="surat-tugas">', `<div class="surat-tugas">${header}`);
-    const withFooter = withHeader.includes("word-footer") ? withHeader : withHeader.replace(/<\/div>\s*$/, `${footer}</div>`);
-    return withFooter;
-  }
-
-  return wrapWithLetterhead(html, ctx);
 };
 
 // ─── DOCX inline-styled exports (also dynamic) ───
@@ -210,7 +179,3 @@ export const buildDocxFooterHtml = (unit: UnitInfo = DEFAULT_UNIT_INFO, meta: Le
     </div>
   </div>
 `;
-
-/** Backward-compatible static DOCX exports */
-export const letterheadDocxHeaderHtml = buildDocxHeaderHtml();
-export const letterheadDocxFooterHtml = buildDocxFooterHtml();

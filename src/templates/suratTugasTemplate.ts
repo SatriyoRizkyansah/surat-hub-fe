@@ -1,9 +1,5 @@
-import { letterheadFooterHtml, letterheadHeaderHtml } from "./letterhead";
-
 // Templates store RAW body content only.
 // The editor wraps them with letterhead dynamically using the current LetterContext.
-
-export const suratTugasHeader = letterheadHeaderHtml;
 
 const suratTugasContent = `
   <div class="word-meta">
@@ -65,5 +61,3 @@ const suratTugasContent = `
 `;
 
 export const suratTugasBody = suratTugasContent;
-
-export const suratTugasFooter = letterheadFooterHtml;
