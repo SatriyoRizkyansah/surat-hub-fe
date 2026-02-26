@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import ClassicEditorBase from "@ckeditor/ckeditor5-editor-classic/src/classiceditor.js";
 import type { EditorConfig } from "@ckeditor/ckeditor5-core/src/editor/editorconfig.js";
@@ -90,7 +91,7 @@ ClassicLetterEditor.defaultConfig = {
     supportAllValues: true,
   },
   fontSize: {
-    options: [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24],
+    options: [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 32, 36, 40, 44, 48],
     supportAllValues: true,
   },
   alignment: {

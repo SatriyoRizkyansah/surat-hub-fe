@@ -1,18 +1,23 @@
 const logos = {
   left: {
-    src: "/assets/logo/sasmita.png",
+    src: "/assets/logo/LogoSasmita.png",
     alt: "Logo Yayasan Sasmita Jaya",
+    width: "3.5cm",
+    height: "2.5cm",
   },
   right: {
-    src: "/assets/logo/unpam.png",
-    alt: "Logo Lembaga Sertifikasi Profesi",
+    src: "/assets/logo/LogoUnpam.png",
+    alt: "Logo Universitas Pamulang",
+    width: "2.2cm",
+    height: "2.2cm",
   },
 };
 
 const brand = {
-  foundation: "YAYASAN SASMITA JAYA",
-  institution: "UNIVERSITAS PAMULANG",
-  tagline: "\u201cLEMBAGA SERTIFIKASI PROFESI\u201d",
+  line1: "YAYASAN SASMITA JAYA",
+  line2: "UNIVERSITAS PAMULANG",
+  line3: "FAKULTAS TEKNIK",
+  subtitle: '"LEMBAGA PENGEMBANGAN TEKNOLOGI INFORMASI"',
 };
 
 const addresses = [
@@ -47,29 +52,30 @@ const renderContacts = (tag: "p" | "div") => {
 };
 
 export const letterheadHeaderHtml = `
-  <header class="word-header" data-running="word-header">
-    <div class="word-header__inner">
-      <div class="word-logo-frame">
-        <img class="word-logo" src="${logos.left.src}" alt="${logos.left.alt}" />
+  <header class="word-header" data-running="word-header" contenteditable="false" data-letterhead-lock="header">
+    <div class="word-header__grid">
+      <div class="word-logo word-logo--left">
+        <img class="word-logo__image" src="${logos.left.src}" alt="${logos.left.alt}" />
       </div>
       <div class="word-identity">
-        <p class="word-identity__foundation">${brand.foundation}</p>
-        <h1>${brand.institution}</h1>
-        <p class="word-identity__tagline">${brand.tagline}</p>
+        <p class="word-identity__line word-identity__line--foundation">${brand.line1}</p>
+        <p class="word-identity__line word-identity__line--institution">${brand.line2}</p>
+        <p class="word-identity__line word-identity__line--faculty">${brand.line3}</p>
+        <p class="word-identity__line word-identity__line--subtitle">${brand.subtitle}</p>
       </div>
-      <div class="word-logo-frame">
-        <img class="word-logo" src="${logos.right.src}" alt="${logos.right.alt}" />
+      <div class="word-logo word-logo--right">
+        <img class="word-logo__image" src="${logos.right.src}" alt="${logos.right.alt}" />
       </div>
     </div>
-    <div class="word-divider word-divider--double">
-      <span></span>
-      <span></span>
+    <div class="word-divider">
+    <span class="word-divider__line word-divider__line--thin"></span>
+    <span class="word-divider__line word-divider__line--thick"></span>
     </div>
   </header>
 `;
 
 export const letterheadFooterHtml = `
-  <footer class="word-footer" data-running="word-footer">
+  <footer class="word-footer" data-running="word-footer" contenteditable="false" data-letterhead-lock="footer">
     <div class="word-footer__inner">
       <div class="word-footer__addresses">
         ${renderAddresses("p")}
@@ -117,23 +123,25 @@ export const ensureLetterhead = (html: string) => {
 };
 
 export const letterheadDocxHeaderHtml = `
-  <div style="font-family:'Times New Roman', serif; color:#001f5f; text-align:center; padding:6mm 15mm 0;">
-    <div style="display:grid; grid-template-columns:120px 1fr 120px; gap:16px; align-items:center;">
-      <div style="width:120px; height:120px; border:1.4px solid #d1d9ef; border-radius:6px; display:flex; align-items:center; justify-content:center; padding:4px; background:#fff;">
+  <div style="font-family:'Times New Roman', serif; color:#001f5f; text-align:center; text-transform:uppercase; padding:4mm 15mm 3mm;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8mm;">
+      <div style="width:${logos.left.width}; height:${logos.left.height}; display:flex; align-items:center; justify-content:center;">
         <img src="${logos.left.src}" style="width:100%; height:100%; object-fit:contain;" alt="${logos.left.alt}" />
       </div>
-      <div style="flex:1; text-transform:uppercase;">
-        <div style="font-weight:700; letter-spacing:1.5px;">${brand.foundation}</div>
-        <div style="font-weight:700; font-size:26px; letter-spacing:2px; margin:2px 0;">${brand.institution}</div>
-        <div style="font-weight:600; letter-spacing:1.2px;">${brand.tagline}</div>
+      <div style="flex:1; text-align:center; line-height:0.9;">
+        <div style="font-size:12pt; font-weight:700; letter-spacing:0.04em;">${brand.line1}</div>
+        <div style="font-size:20pt; font-weight:700; letter-spacing:0.06em; margin:1px 0 2px;">${brand.line2}</div>
+        <div style="font-size:18pt; font-weight:700; letter-spacing:0.05em; margin-bottom:2px;">${brand.line3}</div>
+        <div style="font-size:11pt; font-weight:700; letter-spacing:0.04em; font-style:italic; line-height:1.1;">${brand.subtitle}</div>
       </div>
-      <div style="width:120px; height:120px; border:1.4px solid #d1d9ef; border-radius:6px; display:flex; align-items:center; justify-content:center; padding:4px; background:#fff;">
+      <div style="width:${logos.right.width}; height:${logos.right.height}; display:flex; align-items:center; justify-content:center;">
         <img src="${logos.right.src}" style="width:100%; height:100%; object-fit:contain;" alt="${logos.right.alt}" />
       </div>
     </div>
-    <div style="margin:6px 0 0;">
-      <div style="border-top:3px solid #001f5f; margin:0 auto 2px;"></div>
-      <div style="border-top:1.5px solid #001f5f; margin:0 auto;"></div>
+    <div style="margin-top:4mm;">
+      <div style="height:3px; background:#001f5f; border-radius:2px;"></div>
+      <div style="height:1px; background:#001f5f; margin-top:1.2mm; border-radius:2px;"></div>
+      <div style="height:1px; background:#001f5f; margin-top:0.8mm; border-radius:2px;"></div>
     </div>
   </div>
 `;

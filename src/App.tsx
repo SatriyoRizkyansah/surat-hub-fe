@@ -33,8 +33,9 @@ import {
 import "ckeditor5/ckeditor5.css";
 import "./App.css";
 import "./templates/suratTugas.css";
-import { ensureLetterhead, letterheadDocxFooterHtml, letterheadDocxHeaderHtml, wrapWithLetterhead } from "./templates/letterhead";
+import { letterheadDocxFooterHtml, letterheadDocxHeaderHtml, wrapWithLetterhead } from "./templates/letterhead";
 import { suratTugasBody } from "./templates/suratTugasTemplate";
+import { paginateLetterPages } from "./utils/paginateLetter";
 
 type Template = {
   id: string;
@@ -133,8 +134,107 @@ const templates: Template[] = [
 
 const blankTemplate = wrapWithLetterhead("<p><br /></p>");
 
+const MM_PER_INCH = 25.4;
+const DPI = 96;
+const PAGE_WIDTH_MM = 210;
+const PAGE_HEIGHT_MM = 297;
+const PAGE_WIDTH_PX = (PAGE_WIDTH_MM / MM_PER_INCH) * DPI;
+const PAGE_HEIGHT_PX = (PAGE_HEIGHT_MM / MM_PER_INCH) * DPI;
+const PREVIEW_SCALE = 0.3;
+const PREVIEW_WIDTH_PX = PAGE_WIDTH_PX * PREVIEW_SCALE;
+const PREVIEW_HEIGHT_PX = PAGE_HEIGHT_PX * PREVIEW_SCALE;
+
+const inlineImageCache = new Map<string, string>();
+
+const toAbsoluteUrl = (src: string) => {
+  if (!src) return null;
+  if (/^(data:|https?:|blob:)/i.test(src)) return src;
+  if (src.startsWith("//")) {
+    return `${window.location.protocol}${src}`;
+  }
+  if (src.startsWith("/")) {
+    return `${window.location.origin}${src}`;
+  }
+  try {
+    return new URL(src, window.location.href).href;
+  } catch (error) {
+    console.warn("Gagal membuat URL absolut", src, error);
+    return null;
+  }
+};
+
+const blobToDataUrl = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
+const inlineImageElement = async (img: HTMLImageElement) => {
+  const rawSrc = img.getAttribute("src") ?? "";
+  if (!rawSrc || rawSrc.startsWith("data:")) return;
+  const absoluteSrc = toAbsoluteUrl(rawSrc);
+  if (!absoluteSrc) return;
+  if (inlineImageCache.has(absoluteSrc)) {
+    img.setAttribute("src", inlineImageCache.get(absoluteSrc) ?? rawSrc);
+    return;
+  }
+
+  try {
+    const response = await fetch(absoluteSrc);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    const dataUrl = await blobToDataUrl(blob);
+    inlineImageCache.set(absoluteSrc, dataUrl);
+    img.setAttribute("src", dataUrl);
+  } catch (error) {
+    console.warn("Gagal mengubah gambar jadi data URL", absoluteSrc, error);
+  }
+};
+
+const inlineImagesInElement = async (root: HTMLElement | DocumentFragment) => {
+  const images = Array.from(root.querySelectorAll?.("img") ?? []);
+  await Promise.all(images.map((img) => inlineImageElement(img)));
+};
+
+const inlineImagesInHtml = async (html: string) => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  if (doc.body) {
+    await inlineImagesInElement(doc.body);
+    return doc.body.innerHTML;
+  }
+  return html;
+};
+
+const extractWordBodyHtml = (html: string) => {
+  if (!html) return "<p><br /></p>";
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const wordBody = doc.querySelector?.(".word-body");
+    if (wordBody) {
+      return wordBody.innerHTML.trim() || "<p><br /></p>";
+    }
+
+    const suratWord = doc.querySelector?.(".surat-word");
+    if (suratWord) {
+      return suratWord.innerHTML.trim() || "<p><br /></p>";
+    }
+
+    const bodyHtml = doc.body?.innerHTML?.trim();
+    return bodyHtml && bodyHtml !== "" ? bodyHtml : "<p><br /></p>";
+  } catch (error) {
+    console.warn("Gagal mengekstrak word-body", error);
+    return html;
+  }
+};
+
+const initialBody = extractWordBodyHtml(templates[0]?.content ?? blankTemplate);
+
 function App() {
-  const [content, setContent] = useState<string>(ensureLetterhead(templates[0]?.content ?? blankTemplate));
+  const [bodyHtml, setBodyHtml] = useState<string>(initialBody);
   const [activeTemplate, setActiveTemplate] = useState<string>(templates[0]?.id ?? "");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -142,25 +242,33 @@ function App() {
   const editorInstanceRef = useRef<any>(null);
   const paperRef = useRef<HTMLDivElement | null>(null);
   const exportRef = useRef<HTMLDivElement | null>(null);
-
-  const stripLetterheadSections = (html: string) => {
-    const withoutHeader = html.replace(/<header[^>]*class="[^"]*word-header[^"]*"[^>]*>[\s\S]*?<\/header>/i, "");
-    return withoutHeader.replace(/<footer[^>]*class="[^"]*word-footer[^"]*"[^>]*>[\s\S]*?<\/footer>/i, "");
-  };
+  const bodyHtmlRef = useRef(bodyHtml);
+  const externalUpdateRef = useRef(false);
+  const { wrappedPages, bodySegments } = useMemo(() => paginateLetterPages(bodyHtml), [bodyHtml]);
 
   const handleExportDocx = async () => {
-    const docxBody = stripLetterheadSections(ensureLetterhead(content));
+    const pageSegments = bodySegments.length > 0 ? bodySegments : [bodyHtml];
+    const paginatedHtml = pageSegments
+      .map((segment, index) => {
+        const isLast = index === pageSegments.length - 1;
+        const pageBreakStyle = isLast ? "page-break-after:auto;" : "page-break-after:always;";
+        return `
+          <div class="surat-docx-page" style="${pageBreakStyle}">
+            <div style="padding:0 0 12mm; font-family:'Times New Roman', serif; font-size:12pt; color:#1f2a37;">
+              ${letterheadDocxHeaderHtml}
+              <div style="padding:0 15mm; min-height:120mm; line-height:1.4;">
+                ${segment}
+              </div>
+              ${letterheadDocxFooterHtml}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+    const inlinedHtml = await inlineImagesInHtml(paginatedHtml);
     const payload = {
-      content: docxBody,
-      header: {
-        html: letterheadDocxHeaderHtml,
-        height: 120,
-      },
-      footer: {
-        html: letterheadDocxFooterHtml,
-        height: 110,
-      },
-      pageSize: "A4",
+      content: inlinedHtml,
+      templateId: activeTemplate || "surat-tugas",
     };
 
     try {
@@ -184,9 +292,11 @@ function App() {
     }
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     const element = exportRef.current;
     if (!element) return;
+
+    await inlineImagesInElement(element);
 
     html2pdf()
       .from(element)
@@ -240,7 +350,7 @@ function App() {
         supportAllValues: true,
       },
       fontSize: {
-        options: [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24],
+        options: [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 32, 36, 40, 44, 48],
         supportAllValues: true,
       },
       alignment: {
@@ -270,8 +380,6 @@ function App() {
     [toolbar],
   );
 
-  const exportHtml = useMemo(() => ensureLetterhead(content), [content]);
-
   useEffect(() => {
     let isMounted = true;
 
@@ -283,10 +391,14 @@ function App() {
 
         if (!isMounted) return;
 
-        editor.setData(content);
+        editor.setData(wrapWithLetterhead(bodyHtmlRef.current));
         editor.model.document.on("change:data", () => {
           const data = editor.getData();
-          setContent(data);
+          const normalizedBody = extractWordBodyHtml(data);
+          if (normalizedBody !== bodyHtmlRef.current) {
+            bodyHtmlRef.current = normalizedBody;
+            setBodyHtml(normalizedBody);
+          }
         });
 
         editorInstanceRef.current = editor;
@@ -310,28 +422,36 @@ function App() {
         editorInstanceRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorConfig]);
 
   useEffect(() => {
+    bodyHtmlRef.current = bodyHtml;
+    if (!externalUpdateRef.current) {
+      return;
+    }
+    externalUpdateRef.current = false;
     const instance = editorInstanceRef.current;
     if (!instance) return;
-    if (instance.getData() !== content) {
-      instance.setData(content);
+    const target = wrapWithLetterhead(bodyHtml);
+    const current = instance.getData();
+    if (current.trim() !== target.trim()) {
+      instance.setData(target);
     }
-  }, [content]);
+  }, [bodyHtml]);
 
   const handleTemplateSelect = (templateId: string) => {
     const selected = templates.find((tpl) => tpl.id === templateId);
     if (!selected) return;
 
     setActiveTemplate(templateId);
-    setContent(ensureLetterhead(selected.content));
+    externalUpdateRef.current = true;
+    setBodyHtml(extractWordBodyHtml(selected.content));
   };
 
   const handleClear = () => {
     setActiveTemplate("");
-    setContent(blankTemplate);
+    externalUpdateRef.current = true;
+    setBodyHtml("<p><br /></p>");
   };
 
   return (
@@ -355,7 +475,7 @@ function App() {
             onClick={() => {
               console.log("Dummy POST payload", {
                 template: activeTemplate,
-                content,
+                content: wrapWithLetterhead(bodyHtml),
               });
               alert("Simulasi kirim ke backend (cek console untuk payload)");
             }}
@@ -388,16 +508,44 @@ function App() {
           {loading && !error && <p className="editor-loading">Memuat editor...</p>}
           <div ref={editorElementRef} className={`editor-host${loading ? " is-loading" : ""}`} aria-label="Editor surat" />
         </div>
-        <div className="side-notes">
-          <p className="note-title">Catatan</p>
-          <ul>
-            <li>Kertas mengikuti rasio A4 (210mm x 297mm) dengan margin.</li>
-            <li>Kamu bisa mengganti isi dengan tombol template di atas.</li>
-            <li>Integrasi backend nantinya bisa memuat template sebagai HTML.</li>
-          </ul>
+        <div className="sidebar-stack">
+          <div className="preview-panel">
+            <p className="note-title">Pratinjau A4</p>
+            <div className="preview-pages-mini">
+              {wrappedPages.map((pageHtml, index) => (
+                <div key={`preview-page-${index}`} className="preview-page">
+                  <div className="preview-page__shell" style={{ width: `${PREVIEW_WIDTH_PX}px`, height: `${PREVIEW_HEIGHT_PX}px` }}>
+                    <div
+                      className="preview-page__inner ck-content"
+                      style={{
+                        width: `${PAGE_WIDTH_PX}px`,
+                        height: `${PAGE_HEIGHT_PX}px`,
+                        transform: `scale(${PREVIEW_SCALE})`,
+                        transformOrigin: "top left",
+                      }}
+                      dangerouslySetInnerHTML={{ __html: pageHtml }}
+                    />
+                  </div>
+                  <span className="preview-page__label">Halaman {index + 1}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="side-notes">
+            <p className="note-title">Catatan</p>
+            <ul>
+              <li>Kertas terkunci pada ukuran A4 (210 × 297mm).</li>
+              <li>Header dan footer otomatis disuntik setiap halaman.</li>
+              <li>Gunakan tombol template untuk mengganti isi dengan cepat.</li>
+            </ul>
+          </div>
         </div>
         <div className="export-wrapper" aria-hidden="true">
-          <div className="export-paper ck-content" ref={exportRef} dangerouslySetInnerHTML={{ __html: exportHtml }} />
+          <div className="export-pages" ref={exportRef}>
+            {wrappedPages.map((pageHtml, index) => (
+              <div key={`export-page-${index}`} className="export-paper ck-content" dangerouslySetInnerHTML={{ __html: pageHtml }} />
+            ))}
+          </div>
         </div>
       </section>
     </div>
