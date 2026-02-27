@@ -209,15 +209,17 @@ function buildPdfFooterHtml(unit, meta, addresses) {
 }
 
 /**
- * Build a COMPLETE HTML document reusing the SAME CSS classes and HTML structure
- * as the CKEditor frontend (suratTugas.css + letterhead.ts).
+ * Build HTML document for PDF export.
  *
- * The only additions for PDF:
- * - .word-header gets `position: fixed; top: 0` so it repeats on every page
- * - .word-footer gets `position: fixed; bottom: 0` so it repeats on every page
- * - Body content gets padding-top/bottom to avoid overlapping the fixed elements
+ * TABLE TRICK approach:
+ * - <thead> table-header-group → header repeats on every page
+ * - <tfoot> table-footer-group → footer repeats on every page
+ * - <tbody> content flows naturally, Chromium paginates between them
+ *
+ * After render, Puppeteer injects a spacer in the last page so the footer
+ * sits at the bottom of the physical page (not right after content).
  */
-function buildFullHtmlDocument(bodyContent, letterCtx = {}) {
+function buildPdfHtml(bodyContent, letterCtx = {}) {
   const unit = { ...DEFAULTS.unit, ...(letterCtx.unit || {}) };
   const meta = { ...DEFAULTS.meta, ...(letterCtx.meta || {}) };
   const addresses = letterCtx.addresses || DEFAULTS.addresses;
@@ -225,28 +227,25 @@ function buildFullHtmlDocument(bodyContent, letterCtx = {}) {
   const headerHtml = buildPdfHeaderHtml(unit);
   const footerHtml = buildPdfFooterHtml(unit, meta, addresses);
 
-  // Transform suratTugas.css for PDF context:
-  // Replace :where(.ck-content, .export-paper) with a generic selector
-  // so the same styles apply inside our PDF document body.
-  const pdfCss = suratTugasCss.replace(/:where\(\.ck-content,\s*\.export-paper\)/g, ".pdf-page");
+  // Transform CSS: replace the :where() selector so .pdf-page picks up all styles
+  let pdfCss = suratTugasCss.replace(/:where\(\.ck-content,\s*\.export-paper\)/g, ".pdf-page");
+
+  // Strip @media print block — contains position:running() and @page @top-center
+  // which Chromium doesn't support
+  pdfCss = pdfCss.replace(/@media\s+print\s*\{[\s\S]*?\n\}/g, "/* @media print stripped */");
+
+  // Strip standalone @page from original CSS — we define our own
+  pdfCss = pdfCss.replace(/@page\s*\{[^}]*\}/g, "/* @page stripped */");
 
   return `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
   <style>
-    /* ── Reset & page setup ── */
-    @page {
-      size: A4;
-      margin: 0;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    @page { size: A4; margin: 0; }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
     html, body {
       width: 210mm;
       font-family: 'Times New Roman', serif;
@@ -256,71 +255,92 @@ function buildFullHtmlDocument(bodyContent, letterCtx = {}) {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-
-    /* ── Import the same CSS as the frontend ── */
+    
+    /* ═══ Original frontend CSS ═══ */
     ${pdfCss}
-
-    /* ═══════════════════════════════════════
-       PDF OVERRIDES: make header/footer fixed
-       so they repeat on every printed page.
-       ═══════════════════════════════════════ */
-    .pdf-page .word-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: var(--word-margin-top) var(--word-margin-x) 0;
-      background: #fff;
-      z-index: 100;
-    }
-
-    .pdf-page .word-footer {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 0 var(--word-margin-x) var(--word-margin-bottom);
-      background: #fff;
-      z-index: 100;
-      margin-top: 0;
-    }
-
-    /* Remove the paper border/shadow/radius for PDF (it's a real page) */
+    
+    /* ═══ Minimal PDF overrides ═══ */
+    
+    /* Remove paper card styling (border, shadow, min-height) */
     .pdf-page .surat-tugas {
-      border: none;
-      box-shadow: none;
-      border-radius: 0;
-      padding: 0;
-      margin: 0;
-      width: 100%;
-      min-height: auto;
+      border: none !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      width: 100% !important;
+      min-height: auto !important;
     }
-
-    /* Content area: pushed down past fixed header, up from fixed footer */
+    
+    /* surat-word must be block for table layout to work */
     .pdf-page .surat-word {
-      padding-top: calc(var(--word-header-height) + 2mm);
-      padding-bottom: calc(var(--word-footer-height) + 2mm);
-      padding-left: var(--word-margin-x);
-      padding-right: var(--word-margin-x);
-      min-height: 297mm;
+      display: block !important;
+      min-height: auto !important;
+      position: static !important;
     }
-
-    /* Word-body doesn't need min-height in PDF (surat-word handles it) */
+    
+    /* ═══ TABLE layout for repeating header & footer ═══ */
+    .pdf-table {
+      width: 210mm;
+      display: table;
+      table-layout: fixed;
+      border-collapse: collapse;
+      border-spacing: 0;
+    }
+    .pdf-table > thead { display: table-header-group; }
+    .pdf-table > tfoot { display: table-footer-group; }
+    .pdf-table > tbody { display: table-row-group; }
+    
+    .pdf-table td {
+      padding: 0;
+      border: none;
+    }
+    
+    /* Header: static position, full width with padding */
+    .pdf-page .word-header {
+      width: 210mm;
+      padding: var(--word-margin-top, 8mm) var(--word-margin-x, 15mm) 3mm;
+      position: static !important;
+    }
+    
+    /* Footer: static position (tfoot handles placement), full width */
+    .pdf-page .word-footer {
+      width: 210mm;
+      padding: 4mm var(--word-margin-x, 15mm) var(--word-margin-bottom, 8mm);
+      position: static !important;
+      margin-top: 0 !important;
+    }
+    
+    /* Content: keep original flex layout + gap for spacing fidelity */
     .pdf-page .word-body {
-      min-height: auto;
-      margin: 0;
+      padding: 0 var(--word-margin-x, 15mm);
+      margin: 6mm 0 10mm 0;
+      min-height: auto !important;
+    }
+    
+    /* Constrain user-inserted images */
+    .pdf-page .word-body img:not(.word-logo__image):not(.word-footer__qr-image) {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+    .pdf-page figure {
+      max-width: 100% !important;
     }
   </style>
 </head>
 <body>
   <div class="pdf-page">
-    ${headerHtml}
-    ${footerHtml}
-    <div class="surat-word">
-      <div class="word-body">
-        ${bodyContent}
-      </div>
-    </div>
+   <div class="surat-word">
+    <table class="pdf-table">
+      <thead><tr><td>${headerHtml}</td></tr></thead>
+      <tfoot><tr><td>${footerHtml}</td></tr></tfoot>
+      <tbody><tr><td>
+        <div class="word-body">
+          ${bodyContent}
+        </div>
+      </td></tr></tbody>
+    </table>
+   </div>
   </div>
 </body>
 </html>`;
@@ -330,6 +350,10 @@ function buildFullHtmlDocument(bodyContent, letterCtx = {}) {
  * POST /api/export-pdf
  * Body: { content: string, letterCtx?: { unit, meta, addresses } }
  * Returns: PDF file as binary
+ *
+ * Uses TABLE TRICK (thead/tfoot) for repeating header/footer.
+ * After initial render, injects a spacer to push the last-page footer
+ * to the bottom of the physical page.
  */
 app.post("/api/export-pdf", async (req, res) => {
   const { content, letterCtx } = req.body;
@@ -355,29 +379,70 @@ app.post("/api/export-pdf", async (req, res) => {
     });
 
     const page = await browser.newPage();
+    const htmlDocument = buildPdfHtml(content, letterCtx);
 
-    const htmlDocument = buildFullHtmlDocument(content, letterCtx);
-
-    await page.setContent(htmlDocument, {
-      waitUntil: "networkidle0",
-    });
-
-    // Wait for fonts & images to load
+    await page.setContent(htmlDocument, { waitUntil: "networkidle0" });
     await page.evaluateHandle("document.fonts.ready");
 
+    // ── Step 1: First render to find actual page count ──
+    const firstPdf = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      displayHeaderFooter: false,
+      preferCSSPageSize: true,
+    });
+
+    // Count pages by scanning for PDF page-tree markers
+    // Each "/Type /Page\n" (not "/Type /Pages") = one page
+    const pdfStr = firstPdf.toString("binary");
+    const pageMatches = pdfStr.match(/\/Type\s*\/Page(?!s)/g);
+    const actualPages = pageMatches ? pageMatches.length : 1;
+
+    // ── Step 2: Inject spacer so footer lands at page bottom ──
+    await page.evaluate((numPages) => {
+      const PAGE_H = 297 * (96 / 25.4); // A4 height in CSS px (1122.52)
+      const table = document.querySelector(".pdf-table");
+      if (!table) return;
+
+      const tfoot = table.querySelector("tfoot");
+      const tbody = table.querySelector("tbody");
+      if (!tfoot || !tbody) return;
+
+      // Measure actual content + header heights (without tfoot)
+      tfoot.style.display = "none";
+      const contentH = table.getBoundingClientRect().height;
+      tfoot.style.display = "";
+
+      const footerH = tfoot.getBoundingClientRect().height;
+
+      // What page does content end on? (0-indexed)
+      const lastContentPage = Math.ceil(contentH / PAGE_H) - 1;
+      // Top of last page
+      const lastPageTop = lastContentPage * PAGE_H;
+      // Content bottom relative to last page
+      const contentOnLastPage = contentH - lastPageTop;
+      // Available space on last page for content + footer
+      const available = PAGE_H - contentOnLastPage;
+
+      // Only add spacer if footer fits on last page (otherwise it'll be on next page anyway)
+      // and there's gap between content-end and where footer should be
+      if (available >= footerH) {
+        const spacer = available - footerH;
+        if (spacer > 1) {
+          const spacerRow = document.createElement("tr");
+          const spacerCell = document.createElement("td");
+          spacerCell.style.cssText = `height:${spacer}px;padding:0;border:none;line-height:0;font-size:0;`;
+          spacerRow.appendChild(spacerCell);
+          tbody.appendChild(spacerRow);
+        }
+      }
+    }, actualPages);
+
+    // ── Step 3: Final render with spacer in place ──
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
-      // Header & footer are embedded in the HTML itself using position:fixed,
-      // so we do NOT use Puppeteer's displayHeaderFooter (which has severe
-      // CSS limitations). Margins are 0 because our CSS handles spacing.
       displayHeaderFooter: false,
-      margin: {
-        top: "0px",
-        bottom: "0px",
-        left: "0px",
-        right: "0px",
-      },
       preferCSSPageSize: true,
     });
 
