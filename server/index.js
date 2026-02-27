@@ -384,61 +384,65 @@ app.post("/api/export-pdf", async (req, res) => {
     await page.setContent(htmlDocument, { waitUntil: "networkidle0" });
     await page.evaluateHandle("document.fonts.ready");
 
-    // ── Step 1: First render to find actual page count ──
-    const firstPdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      displayHeaderFooter: false,
-      preferCSSPageSize: true,
-    });
+    // ── Inject spacer so footer sits at the bottom of last physical page ──
+    const debugInfo = await page.evaluate(() => {
+      const PAGE_H = 297 * (96 / 25.4); // A4 = 1122.52 CSS px
 
-    // Count pages by scanning for PDF page-tree markers
-    // Each "/Type /Page\n" (not "/Type /Pages") = one page
-    const pdfStr = firstPdf.toString("binary");
-    const pageMatches = pdfStr.match(/\/Type\s*\/Page(?!s)/g);
-    const actualPages = pageMatches ? pageMatches.length : 1;
-
-    // ── Step 2: Inject spacer so footer lands at page bottom ──
-    await page.evaluate((numPages) => {
-      const PAGE_H = 297 * (96 / 25.4); // A4 height in CSS px (1122.52)
       const table = document.querySelector(".pdf-table");
-      if (!table) return;
+      if (!table) return { error: "no table" };
 
+      const thead = table.querySelector("thead");
       const tfoot = table.querySelector("tfoot");
       const tbody = table.querySelector("tbody");
-      if (!tfoot || !tbody) return;
+      if (!thead || !tfoot || !tbody) return { error: "missing thead/tfoot/tbody" };
 
-      // Measure actual content + header heights (without tfoot)
-      tfoot.style.display = "none";
-      const contentH = table.getBoundingClientRect().height;
-      tfoot.style.display = "";
+      const theadH = thead.getBoundingClientRect().height;
+      const tfootH = tfoot.getBoundingClientRect().height;
+      const tbodyH = tbody.getBoundingClientRect().height;
+      const tableH = table.getBoundingClientRect().height;
 
-      const footerH = tfoot.getBoundingClientRect().height;
+      // The table total = thead + tbody + tfoot
+      // On each printed page, Chromium repeats thead and tfoot.
+      // The actual content that flows is just tbody.
+      // Page 1 usable = PAGE_H - theadH - tfootH
+      // Page N usable = PAGE_H - theadH - tfootH  (same, since both repeat)
+      const usablePerPage = PAGE_H - theadH - tfootH;
 
-      // What page does content end on? (0-indexed)
-      const lastContentPage = Math.ceil(contentH / PAGE_H) - 1;
-      // Top of last page
-      const lastPageTop = lastContentPage * PAGE_H;
-      // Content bottom relative to last page
-      const contentOnLastPage = contentH - lastPageTop;
-      // Available space on last page for content + footer
-      const available = PAGE_H - contentOnLastPage;
+      // How many pages does tbody need?
+      const totalPages = Math.max(1, Math.ceil(tbodyH / usablePerPage));
 
-      // Only add spacer if footer fits on last page (otherwise it'll be on next page anyway)
-      // and there's gap between content-end and where footer should be
-      if (available >= footerH) {
-        const spacer = available - footerH;
-        if (spacer > 1) {
-          const spacerRow = document.createElement("tr");
-          const spacerCell = document.createElement("td");
-          spacerCell.style.cssText = `height:${spacer}px;padding:0;border:none;line-height:0;font-size:0;`;
-          spacerRow.appendChild(spacerCell);
-          tbody.appendChild(spacerRow);
-        }
+      // How much of tbody is on the last page?
+      const tbodyOnLastPage = tbodyH - (totalPages - 1) * usablePerPage;
+
+      // Space remaining on the last page (between tbody-end and where tfoot starts)
+      const remainingSpace = usablePerPage - tbodyOnLastPage;
+
+      const info = {
+        pageH: PAGE_H,
+        theadH,
+        tfootH,
+        tbodyH,
+        tableH,
+        usablePerPage,
+        totalPages,
+        tbodyOnLastPage,
+        remainingSpace,
+      };
+
+      // Add spacer to tbody to fill the remaining space
+      if (remainingSpace > 2) {
+        const spacerRow = document.createElement("tr");
+        const spacerCell = document.createElement("td");
+        spacerCell.style.cssText = `height:${remainingSpace - 1}px;padding:0;border:none;line-height:0;font-size:0;overflow:hidden;`;
+        spacerRow.appendChild(spacerCell);
+        tbody.appendChild(spacerRow);
+        info.spacerAdded = remainingSpace - 1;
       }
-    }, actualPages);
 
-    // ── Step 3: Final render with spacer in place ──
+      return info;
+    });
+    console.log("PDF spacer debug:", JSON.stringify(debugInfo, null, 2));
+
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
