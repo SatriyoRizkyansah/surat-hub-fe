@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alignment,
+  Base64UploadAdapter,
   BlockQuote,
   Bold,
   ClassicEditor,
@@ -13,6 +14,12 @@ import {
   GeneralHtmlSupport,
   Heading,
   HorizontalLine,
+  Image,
+  ImageCaption,
+  ImageInsert,
+  ImageResize,
+  ImageStyle,
+  ImageToolbar,
   Indent,
   IndentBlock,
   Italic,
@@ -68,6 +75,13 @@ const editorPlugins = [
   GeneralHtmlSupport,
   PasteFromOffice,
   SelectAll,
+  Image,
+  ImageInsert,
+  ImageToolbar,
+  ImageCaption,
+  ImageResize,
+  ImageStyle,
+  Base64UploadAdapter,
 ];
 
 const templates: Template[] = [
@@ -355,6 +369,7 @@ function AppInner() {
       "blockQuote",
       "horizontalLine",
       "insertTable",
+      "insertImage",
       "selectAll",
     ],
     [],
@@ -385,6 +400,12 @@ function AppInner() {
       },
       table: {
         contentToolbar: ["tableColumn", "tableRow", "mergeTableCells", "tableProperties", "tableCellProperties"],
+      },
+      image: {
+        toolbar: ["imageStyle:inline", "imageStyle:block", "imageStyle:side", "|", "toggleImageCaption", "imageTextAlternative"],
+        insert: {
+          type: "auto",
+        },
       },
       htmlSupport: {
         allow: [

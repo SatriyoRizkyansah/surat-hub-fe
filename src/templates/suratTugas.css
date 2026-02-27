@@ -245,6 +245,32 @@
   height: 72px;
 }
 
+/* ── Content images (inserted by user) ── */
+:where(.ck-content, .export-paper) .word-body img:not(.word-logo__image):not(.word-footer__qr-image) {
+  max-width: 100%;
+  height: auto;
+}
+
+:where(.ck-content, .export-paper) .word-body figure.image {
+  margin: 8px 0;
+  display: table;
+}
+
+:where(.ck-content, .export-paper) .word-body figure.image img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+:where(.ck-content, .export-paper) .word-body figure.image figcaption {
+  display: table-caption;
+  caption-side: bottom;
+  font-size: 10pt;
+  color: var(--word-muted);
+  text-align: center;
+  padding: 4px 0;
+}
+
 :where(.ck-content, .export-paper) .word-footer {
   margin-top: auto;
   padding-top: 4mm;

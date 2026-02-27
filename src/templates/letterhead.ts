@@ -26,8 +26,8 @@ export const DEFAULT_LOGOS = {
 export const DEFAULT_UNIT_INFO: UnitInfo = {
   institutionLine: "YAYASAN SASMITA JAYA",
   universityLine: "UNIVERSITAS PAMULANG",
-  unitName: "FAKULTAS TEKNIK",
-  subUnit: '"LEMBAGA SERTIFIKASI PROFESI"',
+  unitName: "LEMBAGA SERTIFIKASI PROFESI",
+  subUnit: "FAKULTAS TEKNIK",
   logoLeft: DEFAULT_LOGOS.left.src,
   logoRight: DEFAULT_LOGOS.right.src,
   email: "lsp@unpam.ac.id",
