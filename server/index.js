@@ -380,63 +380,78 @@ app.post("/api/export-pdf", async (req, res) => {
 
     const page = await browser.newPage();
 
-    // Set viewport to match A4 at 96dpi so layout matches print exactly
-    const A4_W_PX = Math.floor(210 * (96 / 25.4)); // 794
-    const A4_H_PX = Math.floor(297 * (96 / 25.4)); // 1122
-    await page.setViewport({ width: A4_W_PX, height: A4_H_PX });
+    // Set viewport width to A4 at 96dpi — height doesn't matter for multi-page print
+    const A4_W_PX = Math.floor(210 * (96 / 25.4)); // 794px
+    await page.setViewport({ width: A4_W_PX, height: 1122 });
 
     const htmlDocument = buildPdfHtml(content, letterCtx);
 
     await page.setContent(htmlDocument, { waitUntil: "networkidle0" });
     await page.evaluateHandle("document.fonts.ready");
 
-    // ── Inject spacer so footer sits at page bottom on the last page ──
-    // Because viewport = A4, getBoundingClientRect matches print layout.
-    const debugInfo = await page.evaluate((pageHeightPx) => {
+    // ── Push footer to bottom of last page via padding-bottom on tbody <td> ──
+    //
+    // How it works:
+    //   1. Measure header (thead) and footer (tfoot) heights in mm.
+    //   2. Calculate usable body height per page = 297mm - header - footer.
+    //   3. Calculate how much content is on the last page.
+    //   4. The gap = usable - lastPageContent = empty space above tfoot.
+    //   5. Add that gap as padding-bottom on the tbody <td> so tfoot is pushed
+    //      to the very bottom of the last physical page.
+    //
+    // Why padding-bottom (not a spacer row, not min-height):
+    //   - padding-bottom is part of the cell, not a new row — no extra tfoot position shift.
+    //   - Setting it in mm keeps it in print-space units, avoiding px↔mm rounding.
+    //   - We subtract a 1.5mm safety buffer to ensure we never overflow to a new page.
+    const debugInfo = await page.evaluate(() => {
       const table = document.querySelector(".pdf-table");
       if (!table) return { error: "no table" };
 
       const thead = table.querySelector("thead");
       const tfoot = table.querySelector("tfoot");
       const tbody = table.querySelector("tbody");
-      if (!thead || !tfoot || !tbody) return { error: "missing parts" };
+      const tbodyTd = tbody?.querySelector("td");
+      if (!thead || !tfoot || !tbody || !tbodyTd) return { error: "missing parts" };
 
-      const theadH = thead.getBoundingClientRect().height;
-      const tfootH = tfoot.getBoundingClientRect().height;
-      const tbodyH = tbody.getBoundingClientRect().height;
+      const PX_PER_MM = 96 / 25.4;
+      const PAGE_H_MM = 297;
 
-      // Usable content height per printed page = page - repeated header - repeated footer
-      const usable = pageHeightPx - theadH - tfootH;
+      const theadH_mm = thead.getBoundingClientRect().height / PX_PER_MM;
+      const tfootH_mm = tfoot.getBoundingClientRect().height / PX_PER_MM;
 
-      if (usable <= 0) return { error: "usable <= 0", theadH, tfootH, pageHeightPx };
+      // Usable body area per page in mm
+      const usable_mm = PAGE_H_MM - theadH_mm - tfootH_mm;
+      if (usable_mm <= 0) return { error: "usable <= 0", theadH_mm, tfootH_mm };
 
-      // How many pages will tbody span?
-      const pages = Math.max(1, Math.ceil(tbodyH / usable));
+      // Content height currently in the tbody cell (excludes any padding we add)
+      const contentH_mm = tbodyTd.getBoundingClientRect().height / PX_PER_MM;
 
-      // How much of tbody is on the last page?
-      const tbodyLastPage = tbodyH - (pages - 1) * usable;
+      // How many pages does content span?
+      const pages = Math.max(1, Math.ceil(contentH_mm / usable_mm));
 
-      // Remaining space between end of tbody and start of tfoot on last page
-      const gap = usable - tbodyLastPage;
+      // How much of the last page is already filled by content?
+      const lastPageUsed_mm = contentH_mm - (pages - 1) * usable_mm;
 
-      const info = { theadH, tfootH, tbodyH, usable, pages, tbodyLastPage, gap };
+      // Gap = remaining empty space on the last page before tfoot
+      const gap_mm = usable_mm - lastPageUsed_mm;
 
-      // Only add spacer if there is meaningful gap (> 5px to avoid rounding issues)
-      // and subtract a safety margin of 2px to prevent overflow to new page
-      if (gap > 5) {
-        const spacerH = gap - 2;
-        const spacerRow = document.createElement("tr");
-        const spacerCell = document.createElement("td");
-        spacerCell.style.cssText = `height:${spacerH}px;padding:0;border:none;line-height:0;font-size:0;overflow:hidden;`;
-        spacerRow.appendChild(spacerCell);
-        tbody.appendChild(spacerRow);
-        info.spacerAdded = spacerH;
+      const info = { theadH_mm, tfootH_mm, usable_mm, contentH_mm, pages, lastPageUsed_mm, gap_mm };
+
+      // Apply gap as padding-bottom so tfoot lands at page bottom.
+      // Safety: subtract 3mm buffer + clamp so padding never exceeds (usable - 10mm)
+      // to prevent the padding itself from pushing content to an extra blank page.
+      const SAFETY_MM = 3;
+      const MAX_PAD_MM = usable_mm - 10;
+      if (gap_mm > SAFETY_MM * 2) {
+        const padH_mm = Math.min(gap_mm - SAFETY_MM, MAX_PAD_MM);
+        tbodyTd.style.paddingBottom = `${padH_mm.toFixed(3)}mm`;
+        info.paddingBottomSet = `${padH_mm.toFixed(3)}mm`;
       }
 
       return info;
-    }, A4_H_PX);
+    });
 
-    console.log("PDF spacer debug:", JSON.stringify(debugInfo));
+    console.log("PDF layout debug:", JSON.stringify(debugInfo));
 
     const pdfBuffer = await page.pdf({
       format: "A4",
